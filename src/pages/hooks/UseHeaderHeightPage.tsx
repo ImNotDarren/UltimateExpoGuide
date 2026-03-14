@@ -45,9 +45,9 @@ export function UseHeaderHeightPage() {
             code={`import { useHeaderHeight } from '@react-navigation/elements';
 import { View, Text } from 'react-native';
 
-export default function MyScreen() {
+export default function MyScreen(): React.ReactElement {
   // Returns a number, e.g., 96 (pixels)
-  const headerHeight = useHeaderHeight();
+  const headerHeight: number = useHeaderHeight();
 
   return (
     <View style={{ flex: 1 }}>
@@ -82,8 +82,8 @@ export default function MyScreen() {
 import { ScrollView, View, Text, StyleSheet } from 'react-native';
 
 // This screen has headerTransparent: true set in its options
-export default function TransparentHeaderScreen() {
-  const headerHeight = useHeaderHeight();
+export default function TransparentHeaderScreen(): React.ReactElement {
+  const headerHeight: number = useHeaderHeight();
 
   return (
     <ScrollView
@@ -97,7 +97,7 @@ export default function TransparentHeaderScreen() {
       </Text>
 
       {/* Lots of content here... */}
-      {Array.from({ length: 20 }).map((_, i) => (
+      {Array.from({ length: 20 }).map((_: unknown, i: number): React.ReactElement => (
         <View key={i} style={styles.card}>
           <Text>Item {i + 1}</Text>
         </View>
@@ -160,8 +160,8 @@ import {
   StyleSheet,
 } from 'react-native';
 
-export default function ChatInputScreen() {
-  const headerHeight = useHeaderHeight();
+export default function ChatInputScreen(): React.ReactElement {
+  const headerHeight: number = useHeaderHeight();
 
   return (
     <KeyboardAvoidingView
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
             code={`import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { View, Text, StyleSheet } from 'react-native';
 
-export default function FullScreenPage() {
+export default function FullScreenPage(): React.ReactElement {
   // insets tells you the safe area on each side
   const insets = useSafeAreaInsets();
 
@@ -351,11 +351,17 @@ import {
   FlatList, KeyboardAvoidingView, Platform, StyleSheet,
 } from 'react-native';
 
-export default function ChatScreen() {
-  const headerHeight = useHeaderHeight();
+interface Message {
+  id: string;
+  text: string;
+  sender: 'me' | 'them';
+}
+
+export default function ChatScreen(): React.ReactElement {
+  const headerHeight: number = useHeaderHeight();
   const insets = useSafeAreaInsets();
 
-  const messages = [
+  const messages: Message[] = [
     { id: '1', text: 'Hey there!', sender: 'them' },
     { id: '2', text: 'Hi! How are you?', sender: 'me' },
     { id: '3', text: 'Great, thanks!', sender: 'them' },
@@ -370,9 +376,9 @@ export default function ChatScreen() {
       {/* Messages list */}
       <FlatList
         data={messages}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item: Message): string => item.id}
         contentContainerStyle={{ paddingTop: headerHeight }}
-        renderItem={({ item }) => (
+        renderItem={({ item }: { item: Message }): React.ReactElement => (
           <View style={[
             styles.messageBubble,
             item.sender === 'me'

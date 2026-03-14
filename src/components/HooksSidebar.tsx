@@ -1,5 +1,9 @@
 import { Link, useLocation } from 'react-router-dom'
 
+const JS_BASICS = [
+  { path: '/basics/modules', label: 'JS Modules' },
+]
+
 const REACT_HOOKS = [
   { path: '/hooks/useState', label: 'useState' },
   { path: '/hooks/useEffect', label: 'useEffect' },
@@ -28,7 +32,24 @@ export function HooksSidebar() {
 
   return (
     <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto rounded-2xl bg-card border border-border p-5 shadow-lg shadow-black/10">
-        <h4 className="font-heading font-semibold text-text text-sm mb-4 uppercase tracking-wider">React Hooks</h4>
+        <h4 className="font-heading font-semibold text-text text-sm mb-4 uppercase tracking-wider">JS Basics</h4>
+        <div className="space-y-1">
+          {JS_BASICS.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`block px-3 py-2 rounded-lg text-sm font-mono transition-colors ${
+                pathname === item.path
+                  ? 'bg-accent/10 text-accent font-semibold'
+                  : 'text-text-muted hover:text-text hover:bg-surface'
+              }`}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+
+        <h4 className="font-heading font-semibold text-text text-sm mt-6 mb-4 uppercase tracking-wider">React Hooks</h4>
         <div className="space-y-1">
           {REACT_HOOKS.map((hook) => (
             <Link

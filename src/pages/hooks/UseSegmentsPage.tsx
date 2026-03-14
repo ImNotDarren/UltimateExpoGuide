@@ -33,9 +33,9 @@ export function UseSegmentsPage() {
             code={`import { useSegments } from 'expo-router';
 import { View, Text } from 'react-native';
 
-export default function DebugScreen() {
+export default function DebugScreen(): React.ReactElement {
   // Returns an array of path segments
-  const segments = useSegments();
+  const segments: string[] = useSegments();
 
   // If the current route is /user/123/settings:
   // segments = ['user', '123', 'settings']
@@ -46,7 +46,7 @@ export default function DebugScreen() {
   return (
     <View style={{ padding: 20 }}>
       <Text>Current segments:</Text>
-      {segments.map((segment, index) => (
+      {segments.map((segment: string, index: number): React.ReactElement => (
         <Text key={index}>
           [{index}]: {segment}
         </Text>
@@ -124,15 +124,15 @@ import { View } from 'react-native';
 // (we'll use a simple variable for this example)
 import { useAuth } from '../hooks/useAuth';
 
-export default function RootLayout() {
-  const segments = useSegments();
+export default function RootLayout(): React.ReactElement {
+  const segments: string[] = useSegments();
   const router = useRouter();
   const { isLoggedIn } = useAuth();
 
-  useEffect(() => {
+  useEffect((): void => {
     // Check if the user is currently in the (auth) group
     // segments[0] will be '(auth)' if they're on login/signup
-    const inAuthGroup = segments[0] === '(auth)';
+    const inAuthGroup: boolean = segments[0] === '(auth)';
 
     if (!isLoggedIn && !inAuthGroup) {
       // User is NOT logged in and NOT on a login/signup screen
@@ -200,15 +200,15 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 // This component wraps your entire app and provides auth state
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+export function AuthProvider({ children }: { children: ReactNode }): React.ReactElement {
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
 
-  const login = (token: string) => {
+  const login = (token: string): void => {
     // Save the token (in a real app, use SecureStore)
     setIsLoggedIn(true);
   };
 
-  const logout = () => {
+  const logout = (): void => {
     setIsLoggedIn(false);
   };
 
@@ -220,7 +220,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 // The hook that any component can call to get auth state
-export function useAuth() {
+export function useAuth(): AuthContextType {
   return useContext(AuthContext);
 }`}
           />
@@ -246,7 +246,7 @@ export function useAuth() {
 // Define the possible first segment as a TypeScript type
 type FirstSegment = '(auth)' | '(tabs)' | '(settings)';
 
-export default function SomeLayout() {
+export default function SomeLayout(): React.ReactElement {
   // The generic tells TypeScript what the first element can be
   const segments = useSegments<[FirstSegment, ...string[]]>();
 

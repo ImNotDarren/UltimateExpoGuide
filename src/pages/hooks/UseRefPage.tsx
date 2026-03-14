@@ -14,6 +14,10 @@ export function UseRefPage() {
   // Focus input demo
   const inputRef = useRef<HTMLInputElement>(null)
 
+  // Source code toggles
+  const [showStopwatchSource, setShowStopwatchSource] = useState(false)
+  const [showFocusSource, setShowFocusSource] = useState(false)
+
   useEffect(() => {
     if (running) {
       intervalRef.current = setInterval(() => {
@@ -140,6 +144,65 @@ const inputRef = useRef<HTMLInputElement>(null);
               and the stop handler, but changing it should not trigger a re-render.
             </p>
           </div>
+
+          <button
+            onClick={() => setShowStopwatchSource(!showStopwatchSource)}
+            className="flex items-center gap-2 mt-4 text-text-muted text-sm font-mono transition-colors hover:text-text"
+          >
+            <span className={`inline-block transition-transform ${showStopwatchSource ? 'rotate-90' : ''}`}>&#9654;</span>
+            {showStopwatchSource ? 'Hide' : 'View'} Source Code
+          </button>
+          <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${showStopwatchSource ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+            <div className="overflow-hidden">
+              <div className="mt-3">
+                <CodeBlock
+                  code={`import { useState, useRef, useEffect } from 'react';
+
+const Stopwatch: React.FC = (): React.ReactElement => {
+  const [elapsed, setElapsed] = useState<number>(0);
+  const [running, setRunning] = useState<boolean>(false);
+  const intervalRef = useRef<number | null>(null);
+
+  useEffect((): (() => void) => {
+    if (running) {
+      intervalRef.current = setInterval((): void => {
+        setElapsed((prev: number): number => prev + 10);
+      }, 10);
+    }
+    return (): void => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [running]);
+
+  const formatTime = (ms: number): string => {
+    const mins: number = Math.floor(ms / 60000);
+    const secs: number = Math.floor((ms % 60000) / 1000);
+    const cs: number = Math.floor((ms % 1000) / 10);
+    return \`\${String(mins).padStart(2, '0')}:\${String(secs).padStart(2, '0')}.\${String(cs).padStart(2, '0')}\`;
+  };
+
+  return (
+    <div>
+      <span>{formatTime(elapsed)}</span>
+      {!running ? (
+        <button onClick={(): void => setRunning(true)}>Start</button>
+      ) : (
+        <button onClick={(): void => setRunning(false)}>Stop</button>
+      )}
+      <button onClick={(): void => { setRunning(false); setElapsed(0); }}>
+        Reset
+      </button>
+    </div>
+  );
+};
+
+export default Stopwatch;`}
+                  language="tsx"
+                  title="Stopwatch source code"
+                />
+              </div>
+            </div>
+          </div>
         </DemoBox>
 
         <DemoBox title="Focus Input — useRef for DOM access">
@@ -161,56 +224,41 @@ const inputRef = useRef<HTMLInputElement>(null);
               In React, you attach a ref to the element and call <code className="text-accent">inputRef.current.focus()</code>.
             </p>
           </div>
+
+          <button
+            onClick={() => setShowFocusSource(!showFocusSource)}
+            className="flex items-center gap-2 mt-4 text-text-muted text-sm font-mono transition-colors hover:text-text"
+          >
+            <span className={`inline-block transition-transform ${showFocusSource ? 'rotate-90' : ''}`}>&#9654;</span>
+            {showFocusSource ? 'Hide' : 'View'} Source Code
+          </button>
+          <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${showFocusSource ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+            <div className="overflow-hidden">
+              <div className="mt-3">
+                <CodeBlock
+                  code={`import { useRef } from 'react';
+
+const FocusInput: React.FC = (): React.ReactElement => {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <div>
+      <input ref={inputRef} placeholder="Click the button to focus me..." />
+      <button onClick={(): void => inputRef.current?.focus()}>
+        Focus the Input
+      </button>
+    </div>
+  );
+};
+
+export default FocusInput;`}
+                  language="tsx"
+                  title="Focus Input source code"
+                />
+              </div>
+            </div>
+          </div>
         </DemoBox>
-
-        <h3 className="text-lg font-heading font-semibold text-text mt-6">Source Code for the Demos Above</h3>
-        <CodeBlock
-          code={`// ── Stopwatch: useRef to store the interval ID ──
-const [elapsed, setElapsed] = useState(0);   // triggers re-render (displayed)
-const [running, setRunning] = useState(false);
-const intervalRef = useRef<number | null>(null);  // does NOT trigger re-render
-
-useEffect(() => {
-  if (running) {
-    // Store the interval ID in the ref so we can clear it later.
-    // If we used useState for this, every setInterval would cause
-    // an unnecessary re-render.
-    intervalRef.current = setInterval(() => {
-      setElapsed(prev => prev + 10);
-    }, 10);
-  }
-  // Cleanup: clear the interval when stopping or unmounting
-  return () => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-  };
-}, [running]);
-
-// ── Focus input: useRef to access a DOM element ──
-const inputRef = useRef<HTMLInputElement>(null);
-
-// Attach in JSX:    <input ref={inputRef} />
-// Use it later:     inputRef.current?.focus();
-//
-// This is React's alternative to document.getElementById().
-// The ref gives you a direct reference to the DOM node.`}
-          language="tsx"
-          title="Demo source code — Stopwatch + Focus Input"
-        />
-
-        <p className="text-text-muted leading-relaxed">
-          <strong className="text-text">Key takeaways:</strong>
-        </p>
-        <ul className="list-disc list-inside text-text-muted space-y-2 ml-2">
-          <li>
-            <code className="text-accent">useRef</code> returns an object with a <code className="text-accent">.current</code> property. You can read and write <code className="text-accent">.current</code> without triggering a re-render.
-          </li>
-          <li>
-            <strong className="text-text">Storing the interval ID</strong> in a ref means the component doesn't re-render when the ID is saved — only when <code className="text-accent">elapsed</code> (a state variable) changes.
-          </li>
-          <li>
-            <strong className="text-text">DOM access</strong> via refs replaces <code className="text-accent">document.getElementById()</code>. Attach a ref to any element with the <code className="text-accent">ref</code> attribute.
-          </li>
-        </ul>
       </section>
 
       {/* React Native equivalent */}
@@ -223,9 +271,9 @@ const inputRef = useRef<HTMLInputElement>(null);
           code={`import { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
 
-export default function StopwatchScreen() {
-  const [elapsed, setElapsed] = useState(0);
-  const [running, setRunning] = useState(false);
+export default function StopwatchScreen(): React.ReactElement {
+  const [elapsed, setElapsed] = useState<number>(0);
+  const [running, setRunning] = useState<boolean>(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<TextInput>(null);
 

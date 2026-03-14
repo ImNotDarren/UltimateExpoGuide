@@ -75,9 +75,9 @@ export function UseCallbackPage() {
           In a React component, this means every render creates new functions:
         </p>
         <CodeBlock
-          code={`function Parent() {
+          code={`function Parent(): React.ReactElement {
   // This creates a NEW function on EVERY render
-  const handleClick = () => {
+  const handleClick = (): void => {
     console.log('clicked');
   };
 
@@ -162,27 +162,31 @@ const memoizedFn = useCallback(
 // memo() wraps a component so it only re-renders when its PROPS change.
 // But "change" for objects/functions means a new reference — not a new value.
 
-const ChildWithout = memo(function ChildWithout({ onClick }) {
+interface ChildProps {
+  onClick: () => void;
+}
+
+const ChildWithout = memo(function ChildWithout({ onClick }: ChildProps): React.ReactElement {
   renderCount++;  // increments on every parent render
   return <button onClick={onClick}>Click me</button>;
 });
 
-const ChildWith = memo(function ChildWith({ onClick }) {
+const ChildWith = memo(function ChildWith({ onClick }: ChildProps): React.ReactElement {
   renderCount++;  // only increments when onClick reference changes
   return <button onClick={onClick}>Click me</button>;
 });
 
-function Parent() {
-  const [count, setCount] = useState(0);
+function Parent(): React.ReactElement {
+  const [count, setCount] = useState<number>(0);
 
   // ❌ Without useCallback: this creates a NEW function object every render.
   // memo(ChildWithout) sees a different onClick reference each time → re-renders.
-  const handleWithout = () => setCount(c => c + 1);
+  const handleWithout = (): void => setCount((c: number) => c + 1);
 
   // ✅ With useCallback: this returns the SAME function reference between renders.
   // memo(ChildWith) sees the same onClick reference → skips re-render.
   // The [] means "never recreate this function" (no dependencies).
-  const handleWith = useCallback(() => setCount(c => c + 1), []);
+  const handleWith = useCallback((): void => setCount((c: number) => c + 1), []);
 
   return (
     <>
@@ -215,19 +219,19 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native
 
 type Item = { id: string; title: string };
 
-export default function TodoList() {
+export default function TodoList(): React.ReactElement {
   const [items, setItems] = useState<Item[]>([
     { id: '1', title: 'Learn useCallback' },
     { id: '2', title: 'Build an app' },
   ]);
 
   // Memoize so FlatList doesn't re-render all items unnecessarily
-  const handlePress = useCallback((id: string) => {
-    setItems(prev => prev.filter(item => item.id !== id));
+  const handlePress = useCallback((id: string): void => {
+    setItems((prev: Item[]): Item[] => prev.filter((item: Item): boolean => item.id !== id));
   }, []);
 
-  const renderItem = useCallback(({ item }: { item: Item }) => (
-    <TouchableOpacity style={styles.item} onPress={() => handlePress(item.id)}>
+  const renderItem = useCallback(({ item }: { item: Item }): React.ReactElement => (
+    <TouchableOpacity style={styles.item} onPress={(): void => handlePress(item.id)}>
       <Text style={styles.text}>{item.title}</Text>
     </TouchableOpacity>
   ), [handlePress]);
@@ -236,7 +240,7 @@ export default function TodoList() {
     <FlatList
       data={items}
       renderItem={renderItem}
-      keyExtractor={item => item.id}
+      keyExtractor={(item: Item): string => item.id}
     />
   );
 }

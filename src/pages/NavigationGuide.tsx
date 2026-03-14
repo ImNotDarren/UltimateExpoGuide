@@ -139,7 +139,7 @@ Routing = file → URL mapping     Routing = file → screen mapping`}
 
 // This is a screen — it fills the entire device display.
 // Think of it as a full-page HTML file, but written in React Native.
-export default function HomeScreen() {
+export default function HomeScreen(): React.ReactElement {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Welcome Home</Text>
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
 
 // The root layout wraps EVERY screen in your app.
 // Think of it like the <html><body> wrapper in a web page.
-export default function RootLayout() {
+export default function RootLayout(): React.ReactElement {
   return (
     <Stack>
       {/* You can configure individual screens here */}
@@ -251,7 +251,7 @@ import { Home, User, Settings } from 'lucide-react-native';
 
 // This layout creates a bottom tab bar.
 // Each tab renders a different screen from this folder.
-export default function TabLayout() {
+export default function TabLayout(): React.ReactElement {
   return (
     <Tabs
       screenOptions={{
@@ -305,7 +305,7 @@ import { View } from 'react-native';
 
 // <Slot /> renders the current child screen.
 // This is like {children} in a web layout component.
-export default function CustomLayout() {
+export default function CustomLayout(): React.ReactElement {
   return (
     <View style={{ flex: 1 }}>
       {/* Your custom header, sidebar, etc. */}
@@ -379,7 +379,7 @@ export default function CustomLayout() {
         title="app/_layout.tsx — Stack with screen options"
         code={`import { Stack } from 'expo-router';
 
-export default function RootLayout() {
+export default function RootLayout(): React.ReactElement {
   return (
     <Stack
       screenOptions={{
@@ -437,9 +437,9 @@ export default function RootLayout() {
         code={`import { Stack, useLocalSearchParams } from 'expo-router';
 import { View, Text } from 'react-native';
 
-export default function UserDetailScreen() {
+export default function UserDetailScreen(): React.ReactElement {
   // Get the dynamic 'id' from the URL — like req.params.id in Express
-  const { id } = useLocalSearchParams();
+  const { id } = useLocalSearchParams<{ id: string }>();
 
   return (
     <View style={{ flex: 1, padding: 20 }}>
@@ -569,7 +569,7 @@ const screenOptions = {
         code={`import { Tabs } from 'expo-router';
 import { Home, Search, User, Bell } from 'lucide-react-native';
 
-export default function TabLayout() {
+export default function TabLayout(): React.ReactElement {
   return (
     <Tabs
       screenOptions={{
@@ -601,21 +601,21 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
+          tabBarIcon: ({ color, size }: { color: string; size: number }): React.ReactElement => <Home size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
           title: 'Explore',
-          tabBarIcon: ({ color, size }) => <Search size={size} color={color} />,
+          tabBarIcon: ({ color, size }: { color: string; size: number }): React.ReactElement => <Search size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="notifications"
         options={{
           title: 'Alerts',
-          tabBarIcon: ({ color, size }) => <Bell size={size} color={color} />,
+          tabBarIcon: ({ color, size }: { color: string; size: number }): React.ReactElement => <Bell size={size} color={color} />,
           tabBarBadge: 3,   // shows a red badge with "3" on the tab icon
         }}
       />
@@ -623,7 +623,7 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
+          tabBarIcon: ({ color, size }: { color: string; size: number }): React.ReactElement => <User size={size} color={color} />,
         }}
       />
     </Tabs>
@@ -670,7 +670,7 @@ export default function TabLayout() {
     headerShown: true,                  // show/hide the entire header
 
     // Custom title component
-    headerTitle: () => (
+    headerTitle: (): React.ReactElement => (
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <Image source={logo} style={{ width: 30, height: 30 }} />
         <Text style={{ marginLeft: 8, fontWeight: 'bold' }}>My App</Text>
@@ -678,13 +678,13 @@ export default function TabLayout() {
     ),
 
     // Left and right buttons
-    headerLeft: () => (
-      <TouchableOpacity onPress={() => router.back()}>
+    headerLeft: (): React.ReactElement => (
+      <TouchableOpacity onPress={(): void => router.back()}>
         <ArrowLeft size={24} color="#000" />
       </TouchableOpacity>
     ),
-    headerRight: () => (
-      <TouchableOpacity onPress={() => alert('Settings!')}>
+    headerRight: (): React.ReactElement => (
+      <TouchableOpacity onPress={(): void => alert('Settings!')}>
         <Settings size={24} color="#000" />
       </TouchableOpacity>
     ),
@@ -754,7 +754,7 @@ export default function TabLayout() {
   name="home"
   options={{
     // Tab bar icon — receives color and size from the navigator
-    tabBarIcon: ({ color, size, focused }) => (
+    tabBarIcon: ({ color, size, focused }: { color: string; size: number; focused: boolean }): React.ReactElement => (
       <Home
         size={size}
         color={color}
@@ -798,20 +798,24 @@ export default function TabLayout() {
 import { View, Text } from 'react-native';
 import { useNavigation, useLocalSearchParams } from 'expo-router';
 
-export default function UserScreen() {
-  const navigation = useNavigation();
-  const { id } = useLocalSearchParams();
-  const [user, setUser] = useState(null);
+interface User {
+  name: string;
+}
 
-  useEffect(() => {
+export default function UserScreen(): React.ReactElement {
+  const navigation = useNavigation();
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect((): void => {
     // Fetch user data...
-    fetchUser(id).then((data) => {
+    fetchUser(id).then((data: User): void => {
       setUser(data);
 
       // Update the header title AFTER we have the user's name
       navigation.setOptions({
         title: data.name,
-        headerRight: () => (
+        headerRight: (): React.ReactElement => (
           <Text style={{ color: '#6366f1' }}>Follow</Text>
         ),
       });
@@ -863,7 +867,7 @@ import { useLocalSearchParams } from 'expo-router';
 
 // This file matches: /user/1, /user/42, /user/abc, etc.
 // The [id] in the filename becomes a parameter you can read.
-export default function UserDetailScreen() {
+export default function UserDetailScreen(): React.ReactElement {
   // useLocalSearchParams reads the dynamic segment from the URL
   // This is like req.params in Express
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -912,12 +916,12 @@ import { useLocalSearchParams } from 'expo-router';
 //   /docs/intro           → rest = ['intro']
 //   /docs/guides/setup    → rest = ['guides', 'setup']
 //   /docs/api/v2/users    → rest = ['api', 'v2', 'users']
-export default function DocsScreen() {
+export default function DocsScreen(): React.ReactElement {
   // rest is an ARRAY of all the segments
   const { rest } = useLocalSearchParams<{ rest: string[] }>();
 
   // Join them to reconstruct the path
-  const path = Array.isArray(rest) ? rest.join('/') : rest;
+  const path: string = Array.isArray(rest) ? rest.join('/') : rest;
 
   return (
     <View style={{ flex: 1, padding: 20 }}>
@@ -993,7 +997,7 @@ export default function DocsScreen() {
 
 // This layout wraps ONLY the auth screens (login, signup, forgot).
 // It uses a plain Stack with no header — just clean, simple screens.
-export default function AuthLayout() {
+export default function AuthLayout(): React.ReactElement {
   return (
     <Stack
       screenOptions={{
@@ -1057,7 +1061,7 @@ export default function AuthLayout() {
         code={`import { View, Text } from 'react-native';
 import { Link } from 'expo-router';
 
-export default function HomeScreen() {
+export default function HomeScreen(): React.ReactElement {
   return (
     <View style={{ flex: 1, padding: 20 }}>
       <Text style={{ fontSize: 24, fontWeight: 'bold' }}>Home</Text>
@@ -1117,10 +1121,10 @@ export default function HomeScreen() {
         code={`import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 
-export default function LoginScreen() {
+export default function LoginScreen(): React.ReactElement {
   const router = useRouter();
 
-  const handleLogin = async () => {
+  const handleLogin = async (): Promise<void> => {
     try {
       await loginUser(email, password);
 

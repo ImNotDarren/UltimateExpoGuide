@@ -35,7 +35,7 @@ export function UseRouterPage() {
             code={`import { useRouter } from 'expo-router';
 
 // A component is just a function that returns UI (JSX)
-export default function HomeScreen() {
+export default function HomeScreen(): React.ReactElement {
   // Call the hook at the top of your component
   const router = useRouter();
 
@@ -150,7 +150,7 @@ router.back();`}
             code={`import { useRouter } from 'expo-router';
 import { View, Text, TouchableOpacity } from 'react-native';
 
-export default function DetailScreen() {
+export default function DetailScreen(): React.ReactElement {
   const router = useRouter();
 
   return (
@@ -208,13 +208,13 @@ router.dismissAll();`}
 import { useRouter } from 'expo-router';
 import { View, Text, TextInput, Button, Alert } from 'react-native';
 
-export default function LoginScreen() {
+export default function LoginScreen(): React.ReactElement {
   const router = useRouter();
   // useState creates a variable that React tracks for changes
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
 
-  const handleLogin = async () => {
+  const handleLogin = async (): Promise<void> => {
     try {
       // Call your API to verify credentials
       const response = await fetch('https://api.example.com/login', {

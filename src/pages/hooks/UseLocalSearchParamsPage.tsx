@@ -70,10 +70,10 @@ export function UseLocalSearchParamsPage() {
 import { View, Text } from 'react-native';
 
 // This component renders when the user visits /user/123
-export default function UserScreen() {
+export default function UserScreen(): React.ReactElement {
   // useLocalSearchParams returns an object with all params
   // If the URL is /user/123, then params = { id: '123' }
-  const params = useLocalSearchParams();
+  const params = useLocalSearchParams<{ id: string }>();
 
   return (
     <View style={{ padding: 20 }}>
@@ -104,8 +104,8 @@ export default function UserScreen() {
 import { View, Text } from 'react-native';
 
 // If navigated to with: router.push('/search?query=shoes&sort=price')
-export default function SearchScreen() {
-  const params = useLocalSearchParams();
+export default function SearchScreen(): React.ReactElement {
+  const params = useLocalSearchParams<{ query: string; sort: string }>();
   // params = { query: 'shoes', sort: 'price' }
 
   return (
@@ -136,7 +136,7 @@ type ProductParams = {
   color?: string;  // optional param (the ? means it might not exist)
 };
 
-export default function ProductScreen() {
+export default function ProductScreen(): React.ReactElement {
   // Pass your type in angle brackets — this is called a "generic"
   const { id, color } = useLocalSearchParams<ProductParams>();
   // Now TypeScript knows:
@@ -207,13 +207,18 @@ export default function ProductScreen() {
             code={`import { useRouter } from 'expo-router';
 import { View, Text, TouchableOpacity, FlatList } from 'react-native';
 
-const products = [
+interface Product {
+  id: string;
+  name: string;
+}
+
+const products: Product[] = [
   { id: '1', name: 'Wireless Headphones' },
   { id: '2', name: 'USB-C Cable' },
   { id: '3', name: 'Phone Case' },
 ];
 
-export default function ProductListScreen() {
+export default function ProductListScreen(): React.ReactElement {
   const router = useRouter();
 
   return (
@@ -222,8 +227,8 @@ export default function ProductListScreen() {
       {/* FlatList is like a performant <ul> for long lists */}
       <FlatList
         data={products}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
+        keyExtractor={(item: Product): string => item.id}
+        renderItem={({ item }: { item: Product }): React.ReactElement => (
           <TouchableOpacity
             onPress={() => router.push(\`/products/\${item.id}\`)}
             style={{ padding: 16, borderBottomWidth: 1 }}
@@ -246,15 +251,21 @@ type ProductParams = {
   id: string;
 };
 
-export default function ProductDetailScreen() {
+interface ProductDetail {
+  name: string;
+  price: number;
+  description: string;
+}
+
+export default function ProductDetailScreen(): React.ReactElement {
   const { id } = useLocalSearchParams<ProductParams>();
-  const [product, setProduct] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [product, setProduct] = useState<ProductDetail | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
   // useEffect runs code when the component first appears
   // Similar to running code after the DOM loads on the web
-  useEffect(() => {
-    async function fetchProduct() {
+  useEffect((): void => {
+    async function fetchProduct(): Promise<void> {
       const response = await fetch(
         \`https://api.example.com/products/\${id}\`
       );

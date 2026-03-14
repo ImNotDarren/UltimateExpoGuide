@@ -37,7 +37,7 @@ const JSX_HTML = `<!-- Regular HTML -->
 </div>`
 
 const JSX_REACT = `// JSX — HTML-like syntax inside JavaScript
-function Card() {
+function Card(): React.ReactElement {
   return (
     <div className="card">
       <h2>Hello</h2>
@@ -70,7 +70,11 @@ const COMP_VANILLA = `<!-- index.html -->
 </script>`
 
 const COMP_REACT = `// React — describe what you want, React handles the DOM
-function Greeting({ name }: { name: string }) {
+interface GreetingProps {
+  name: string;
+}
+
+function Greeting({ name }: GreetingProps): React.ReactElement {
   return (
     <div>
       <h1>Hello, {name}!</h1>
@@ -80,7 +84,7 @@ function Greeting({ name }: { name: string }) {
 }
 
 // Reuse it like an HTML tag:
-function App() {
+function App(): React.ReactElement {
   return (
     <div>
       <Greeting name="Alice" />
@@ -120,7 +124,7 @@ interface CardProps {
   color: string;
 }
 
-function Card({ title, description, color }: CardProps) {
+function Card({ title, description, color }: CardProps): React.ReactElement {
   return (
     <div
       className="card"
@@ -133,7 +137,7 @@ function Card({ title, description, color }: CardProps) {
 }
 
 // Use it — props flow one way: parent → child
-function App() {
+function App(): React.ReactElement {
   return (
     <div>
       <Card title="React" description="A UI library" color="blue" />
@@ -165,15 +169,15 @@ const STATE_VANILLA = `<!-- Vanilla JS: manual state tracking + DOM updates -->
 const STATE_REACT = `import { useState } from 'react';
 
 // React: declare state, React keeps the DOM in sync
-function Counter() {
+function Counter(): React.ReactElement {
   // count = the value, setCount = function to update it
-  const [count, setCount] = useState(0);
+  const [count, setCount] = useState<number>(0);
 
   return (
     <div>
       {/* React auto-updates this when count changes */}
       <p>Count: {count}</p>
-      <button onClick={() => setCount(count + 1)}>
+      <button onClick={(): void => setCount(count + 1)}>
         +1
       </button>
     </div>

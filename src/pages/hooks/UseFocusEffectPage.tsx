@@ -96,16 +96,16 @@ export function UseFocusEffectPage() {
 import { useCallback } from 'react';
 import { View, Text } from 'react-native';
 
-export default function NotificationsScreen() {
+export default function NotificationsScreen(): React.ReactElement {
   useFocusEffect(
     // useCallback wraps the function — this is required
-    useCallback(() => {
+    useCallback((): (() => void) => {
       // This code runs every time the screen gains focus
       console.log('Screen is focused! Fetching fresh data...');
 
       // Return a cleanup function (optional)
       // This runs when the screen loses focus
-      return () => {
+      return (): void => {
         console.log('Screen lost focus. Cleaning up...');
       };
     }, []) // Empty array = no dependencies, but still runs on every focus
@@ -146,18 +146,18 @@ type Notification = {
   time: string;
 };
 
-export default function NotificationsScreen() {
+export default function NotificationsScreen(): React.ReactElement {
   // useState creates variables that React tracks for changes
   // When you call setNotifications(), React updates the UI
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useFocusEffect(
-    useCallback(() => {
+    useCallback((): (() => void) => {
       // This function runs every time this screen gains focus
-      let isActive = true; // Guard against setting state after unmount
+      let isActive: boolean = true; // Guard against setting state after unmount
 
-      async function fetchNotifications() {
+      async function fetchNotifications(): Promise<void> {
         setLoading(true);
         try {
           const response = await fetch(
@@ -170,7 +170,7 @@ export default function NotificationsScreen() {
             setNotifications(data);
             setLoading(false);
           }
-        } catch (error) {
+        } catch (error: unknown) {
           console.error('Failed to fetch notifications:', error);
           if (isActive) setLoading(false);
         }
@@ -196,8 +196,8 @@ export default function NotificationsScreen() {
       </Text>
       <FlatList
         data={notifications}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
+        keyExtractor={(item: Notification): string => item.id}
+        renderItem={({ item }: { item: Notification }): React.ReactElement => (
           <View style={{ padding: 12, borderBottomWidth: 1 }}>
             <Text style={{ fontWeight: '600' }}>{item.message}</Text>
             <Text style={{ color: '#999', marginTop: 4 }}>
@@ -230,21 +230,21 @@ export default function NotificationsScreen() {
 import { useCallback, useState, useRef } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
-export default function TimerScreen() {
-  const [seconds, setSeconds] = useState(0);
+export default function TimerScreen(): React.ReactElement {
+  const [seconds, setSeconds] = useState<number>(0);
   // useRef stores a value that persists across renders
   // without causing re-renders when it changes
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useFocusEffect(
-    useCallback(() => {
+    useCallback((): (() => void) => {
       // Screen gained focus → start the timer
-      intervalRef.current = setInterval(() => {
-        setSeconds((prev) => prev + 1);
+      intervalRef.current = setInterval((): void => {
+        setSeconds((prev: number) => prev + 1);
       }, 1000);
 
       // Screen lost focus → stop the timer
-      return () => {
+      return (): void => {
         if (intervalRef.current) {
           clearInterval(intervalRef.current);
           intervalRef.current = null;
@@ -302,15 +302,21 @@ const styles = StyleSheet.create({
 import { useCallback, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 
-export default function UserProfileScreen() {
+interface UserProfile {
+  name: string;
+  email: string;
+  avatar: string;
+}
+
+export default function UserProfileScreen(): React.ReactElement {
   const { userId } = useLocalSearchParams<{ userId: string }>();
-  const [profile, setProfile] = useState(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
 
   useFocusEffect(
-    useCallback(() => {
-      let isActive = true;
+    useCallback((): (() => void) => {
+      let isActive: boolean = true;
 
-      async function loadProfile() {
+      async function loadProfile(): Promise<void> {
         const response = await fetch(
           \`https://api.example.com/users/\${userId}\`
         );

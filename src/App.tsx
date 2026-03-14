@@ -17,6 +17,7 @@ import { UseFocusEffectPage } from './pages/hooks/UseFocusEffectPage'
 import { UseNavigationPage } from './pages/hooks/UseNavigationPage'
 import { UseHeaderHeightPage } from './pages/hooks/UseHeaderHeightPage'
 import { NavigationGuide } from './pages/NavigationGuide'
+import { ModulesPage } from './pages/basics/ModulesPage'
 
 function App() {
   return (
@@ -24,6 +25,8 @@ function App() {
       <Navbar />
       <Routes>
         <Route path="/" element={<HomePage />} />
+        {/* JS Basics */}
+        <Route path="/basics/modules" element={<ModulesPage />} />
         {/* React Hooks */}
         <Route path="/hooks/useState" element={<UseStatePage />} />
         <Route path="/hooks/useEffect" element={<UseEffectPage />} />

@@ -97,22 +97,29 @@ export function UseContextPage() {
         </p>
         <CodeBlock
           code={`// Without Context — "prop drilling"
-function App() {
-  const [theme, setTheme] = useState('light');
+type Theme = 'light' | 'dark';
+
+interface ThemeProps {
+  theme: Theme;
+  setTheme: React.Dispatch<React.SetStateAction<Theme>>;
+}
+
+function App(): React.ReactElement {
+  const [theme, setTheme] = useState<Theme>('light');
   return <Layout theme={theme} setTheme={setTheme} />;  // pass down
 }
 
-function Layout({ theme, setTheme }) {
+function Layout({ theme, setTheme }: ThemeProps): React.ReactElement {
   return <Sidebar theme={theme} setTheme={setTheme} />;  // pass through (doesn't use it!)
 }
 
-function Sidebar({ theme, setTheme }) {
+function Sidebar({ theme, setTheme }: ThemeProps): React.ReactElement {
   return <ThemeToggle theme={theme} setTheme={setTheme} />;  // pass through again
 }
 
-function ThemeToggle({ theme, setTheme }) {
+function ThemeToggle({ theme, setTheme }: ThemeProps): React.ReactElement {
   // Finally uses it!
-  return <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>Toggle</button>;
+  return <button onClick={(): void => setTheme(theme === 'light' ? 'dark' : 'light')}>Toggle</button>;
 }`}
           language="tsx"
           title="The problem — props passed through layers that don't need them"
@@ -132,15 +139,16 @@ function ThemeToggle({ theme, setTheme }) {
           code={`import { createContext } from 'react';
 
 // Create a context with a default value
-const ThemeContext = createContext('light');`}
+type Theme = 'light' | 'dark';
+const ThemeContext = createContext<Theme>('light');`}
           language="tsx"
           title="Step 1 — createContext"
         />
 
         <h3 className="text-lg font-heading font-semibold text-text mt-6">Step 2: Provide it at the top of the tree</h3>
         <CodeBlock
-          code={`function App() {
-  const [theme, setTheme] = useState('light');
+          code={`function App(): React.ReactElement {
+  const [theme, setTheme] = useState<Theme>('light');
 
   return (
     // Wrap your component tree with the Provider
@@ -159,12 +167,12 @@ const ThemeContext = createContext('light');`}
         <CodeBlock
           code={`import { useContext } from 'react';
 
-function ThemeToggle() {
+function ThemeToggle(): React.ReactElement {
   // Read the value directly — no props needed!
   const { theme, setTheme } = useContext(ThemeContext);
 
   return (
-    <button onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+    <button onClick={(): void => setTheme(theme === 'light' ? 'dark' : 'light')}>
       Current theme: {theme}
     </button>
   );
@@ -208,9 +216,9 @@ const DemoThemeContext = createContext<{
 
 // ── Step 2: Create a Provider component ──
 // This wraps part of your component tree and supplies the value.
-function DemoThemeProvider({ children }: { children: ReactNode }) {
+function DemoThemeProvider({ children }: { children: ReactNode }): React.ReactElement {
   const [theme, setTheme] = useState<Theme>('light');
-  const toggleTheme = () => setTheme(t => (t === 'light' ? 'dark' : 'light'));
+  const toggleTheme = (): void => setTheme((t: Theme) => (t === 'light' ? 'dark' : 'light'));
 
   // Every component inside this Provider can read { theme, toggleTheme }
   return (
@@ -222,7 +230,7 @@ function DemoThemeProvider({ children }: { children: ReactNode }) {
 
 // ── Step 3: Consume with useContext ──
 // These components can be deeply nested — no props needed.
-function Header() {
+function Header(): React.ReactElement {
   const { theme, toggleTheme } = useContext(DemoThemeContext);
   return (
     <div style={{ background: theme === 'dark' ? '#1f2937' : '#fff' }}>
@@ -234,14 +242,14 @@ function Header() {
   );
 }
 
-function Card() {
+function Card(): React.ReactElement {
   // This component reads theme directly — no prop was passed to it.
   const { theme } = useContext(DemoThemeContext);
   return <div>Card theme: {theme}</div>;
 }
 
 // ── Usage ──
-function App() {
+function App(): React.ReactElement {
   return (
     <DemoThemeProvider>
       <Header />   {/* reads theme + toggleTheme */}
@@ -293,9 +301,9 @@ const ThemeContext = createContext<{
 }>({ theme: 'light', toggle: () => {} });
 
 // 2. Provider
-export function ThemeProvider({ children }: { children: ReactNode }) {
+export function ThemeProvider({ children }: { children: ReactNode }): React.ReactElement {
   const [theme, setTheme] = useState<Theme>('light');
-  const toggle = () => setTheme(t => t === 'light' ? 'dark' : 'light');
+  const toggle = (): void => setTheme((t: Theme) => t === 'light' ? 'dark' : 'light');
 
   return (
     <ThemeContext.Provider value={{ theme, toggle }}>
@@ -305,7 +313,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 }
 
 // 3. Consume — use in any screen or component
-export function SettingsScreen() {
+export function SettingsScreen(): React.ReactElement {
   const { theme, toggle } = useContext(ThemeContext);
 
   return (
@@ -351,7 +359,7 @@ const styles = StyleSheet.create({
         <InfoBox variant="tip" title="Custom hook pattern">
           Wrap <code className="text-accent">useContext</code> in a custom hook for cleaner code:
           <code className="text-accent block mt-2">
-            {`export function useTheme() { return useContext(ThemeContext); }`}
+            {`export function useTheme(): ThemeContextType { return useContext(ThemeContext); }`}
           </code>
           Now consumers just call <code className="text-accent">useTheme()</code> instead of importing both the context and the hook.
         </InfoBox>

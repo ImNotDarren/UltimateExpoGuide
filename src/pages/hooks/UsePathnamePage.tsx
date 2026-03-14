@@ -33,9 +33,9 @@ export function UsePathnamePage() {
             code={`import { usePathname } from 'expo-router';
 import { View, Text } from 'react-native';
 
-export default function DebugScreen() {
+export default function DebugScreen(): React.ReactElement {
   // Returns the current path, e.g., "/settings/profile"
-  const pathname = usePathname();
+  const pathname: string = usePathname();
 
   return (
     <View style={{ padding: 20 }}>
@@ -71,11 +71,11 @@ import { View, Text } from 'react-native';
 
 // This is a layout component — it wraps child screens
 // Slot renders whatever child screen matches the current URL
-export default function AppLayout() {
-  const pathname = usePathname();
+export default function AppLayout(): React.ReactElement {
+  const pathname: string = usePathname();
 
   // Only show the promotional banner on the home screen
-  const showBanner = pathname === '/';
+  const showBanner: boolean = pathname === '/';
 
   return (
     <View style={{ flex: 1 }}>
@@ -113,21 +113,27 @@ export default function AppLayout() {
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
 // Define your tabs — each has a route path and a label
-const tabs = [
+interface Tab {
+  path: string;
+  label: string;
+  icon: string;
+}
+
+const tabs: Tab[] = [
   { path: '/home', label: 'Home', icon: '🏠' },
   { path: '/search', label: 'Search', icon: '🔍' },
   { path: '/profile', label: 'Profile', icon: '👤' },
 ];
 
-export function CustomTabBar() {
-  const pathname = usePathname();
+export function CustomTabBar(): React.ReactElement {
+  const pathname: string = usePathname();
   const router = useRouter();
 
   return (
     <View style={styles.tabBar}>
-      {tabs.map((tab) => {
+      {tabs.map((tab: Tab): React.ReactElement => {
         // Check if this tab matches the current route
-        const isActive = pathname === tab.path
+        const isActive: boolean = pathname === tab.path
           || pathname.startsWith(tab.path + '/');
 
         return (
@@ -204,13 +210,13 @@ import { useEffect } from 'react';
 import { Slot } from 'expo-router';
 import { View } from 'react-native';
 
-export default function RootLayout() {
-  const pathname = usePathname();
+export default function RootLayout(): React.ReactElement {
+  const pathname: string = usePathname();
 
   // useEffect runs code when the component first appears
   // AND whenever values in the [dependency array] change.
   // Here it runs every time pathname changes.
-  useEffect(() => {
+  useEffect((): void => {
     // Log the screen view to your analytics service
     console.log('User navigated to:', pathname);
 
@@ -244,21 +250,26 @@ export default function RootLayout() {
             code={`import { usePathname, useRouter } from 'expo-router';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
-export function Breadcrumbs() {
-  const pathname = usePathname();
+interface Crumb {
+  label: string;
+  path: string;
+}
+
+export function Breadcrumbs(): React.ReactElement {
+  const pathname: string = usePathname();
   const router = useRouter();
 
   // Split "/settings/notifications" into ["settings", "notifications"]
   // .filter(Boolean) removes empty strings from the split
-  const segments = pathname.split('/').filter(Boolean);
+  const segments: string[] = pathname.split('/').filter(Boolean);
 
   // Build breadcrumb items with their full paths
-  const crumbs = segments.map((segment, index) => {
+  const crumbs: Crumb[] = segments.map((segment: string, index: number): Crumb => {
     // Build the path for this crumb: /settings, /settings/notifications
-    const path = '/' + segments.slice(0, index + 1).join('/');
+    const path: string = '/' + segments.slice(0, index + 1).join('/');
 
     // Capitalize the segment name for display
-    const label = segment.charAt(0).toUpperCase() + segment.slice(1);
+    const label: string = segment.charAt(0).toUpperCase() + segment.slice(1);
 
     return { label, path };
   });

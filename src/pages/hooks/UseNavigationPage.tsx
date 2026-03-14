@@ -47,7 +47,7 @@ export function UseNavigationPage() {
             code={`import { useNavigation } from '@react-navigation/native';
 import { View, Text, Button } from 'react-native';
 
-export default function SettingsScreen() {
+export default function SettingsScreen(): React.ReactElement {
   // Get the navigation object
   const navigation = useNavigation();
 
@@ -86,7 +86,7 @@ import { useEffect } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { View, Text } from 'react-native';
 
-export default function ChatScreen() {
+export default function ChatScreen(): React.ReactElement {
   const navigation = useNavigation();
   const { contactName } = useLocalSearchParams<{
     contactName: string;
@@ -117,14 +117,14 @@ export default function ChatScreen() {
 import { useEffect } from 'react';
 import { View, Text, TouchableOpacity, Alert } from 'react-native';
 
-export default function ProfileScreen() {
+export default function ProfileScreen(): React.ReactElement {
   const navigation = useNavigation();
 
-  useEffect(() => {
+  useEffect((): void => {
     navigation.setOptions({
       title: 'My Profile',
       // headerRight renders a component on the right side of the header
-      headerRight: () => (
+      headerRight: (): React.ReactElement => (
         <TouchableOpacity
           onPress={() => Alert.alert('Settings', 'Open settings!')}
           style={{ marginRight: 16 }}
@@ -163,23 +163,23 @@ export default function ProfileScreen() {
 import { useEffect } from 'react';
 import { View, Text } from 'react-native';
 
-export default function VideoScreen() {
+export default function VideoScreen(): React.ReactElement {
   const navigation = useNavigation();
 
-  useEffect(() => {
+  useEffect((): (() => void) => {
     // addListener returns an unsubscribe function
-    const unsubFocus = navigation.addListener('focus', () => {
+    const unsubFocus = navigation.addListener('focus', (): void => {
       console.log('Screen focused — resume video playback');
       // videoPlayer.play();
     });
 
-    const unsubBlur = navigation.addListener('blur', () => {
+    const unsubBlur = navigation.addListener('blur', (): void => {
       console.log('Screen blurred — pause video playback');
       // videoPlayer.pause();
     });
 
     // Cleanup: remove listeners when component unmounts
-    return () => {
+    return (): void => {
       unsubFocus();
       unsubBlur();
     };
@@ -217,13 +217,13 @@ import {
   View, Text, TextInput, Button, Alert, StyleSheet,
 } from 'react-native';
 
-export default function EditNoteScreen() {
+export default function EditNoteScreen(): React.ReactElement {
   const navigation = useNavigation();
-  const [noteText, setNoteText] = useState('');
-  const [savedText, setSavedText] = useState('');
+  const [noteText, setNoteText] = useState<string>('');
+  const [savedText, setSavedText] = useState<string>('');
 
   // Check if there are unsaved changes
-  const hasUnsavedChanges = noteText !== savedText;
+  const hasUnsavedChanges: boolean = noteText !== savedText;
 
   useEffect(() => {
     // Listen for the 'beforeRemove' event
@@ -263,7 +263,7 @@ export default function EditNoteScreen() {
     return unsubscribe;
   }, [navigation, hasUnsavedChanges]);
 
-  const handleSave = () => {
+  const handleSave = (): void => {
     // In a real app, save to your API here
     setSavedText(noteText);
     Alert.alert('Saved!', 'Your note has been saved.');
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
             title="Reading navigation state"
             code={`import { useNavigation } from '@react-navigation/native';
 
-export default function DebugScreen() {
+export default function DebugScreen(): React.ReactElement {
   const navigation = useNavigation();
   const state = navigation.getState();
 

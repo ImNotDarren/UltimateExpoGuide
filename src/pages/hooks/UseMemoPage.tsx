@@ -56,16 +56,27 @@ export function UseMemoPage() {
           <strong className="text-text"> expensive computation</strong> that should only re-run when specific inputs change:
         </p>
         <CodeBlock
-          code={`function ProductList({ products, searchTerm }) {
+          code={`interface Product {
+  id: string;
+  name: string;
+  price: number;
+}
+
+interface ProductListProps {
+  products: Product[];
+  searchTerm: string;
+}
+
+function ProductList({ products, searchTerm }: ProductListProps): React.ReactElement {
   // This runs on EVERY render — even if products and searchTerm haven't changed
-  const filtered = products.filter(p =>
+  const filtered: Product[] = products.filter((p: Product): boolean =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // If 'products' has 50,000 items and the component re-renders because
   // of an unrelated state change (like a modal opening), this filter
   // runs again unnecessarily.
-  return filtered.map(p => <Product key={p.id} {...p} />);
+  return <>{filtered.map((p: Product) => <Product key={p.id} {...p} />)}</>;
 }`}
           language="tsx"
           title="The problem — unnecessary re-computation"
@@ -166,22 +177,27 @@ const result = useMemo(
         <CodeBlock
           code={`import { useState, useMemo } from 'react';
 
+interface ListItem {
+  id: number;
+  name: string;
+}
+
 // A large dataset created once (outside the component)
-const LARGE_LIST = Array.from({ length: 10000 }, (_, i) => ({
+const LARGE_LIST: ListItem[] = Array.from({ length: 10000 }, (_, i: number): ListItem => ({
   id: i,
   name: \`Item \${i + 1} — \${fruits[i % 10]}\`,
 }));
 
-function FilterDemo() {
-  const [search, setSearch] = useState('');
+function FilterDemo(): React.ReactElement {
+  const [search, setSearch] = useState<string>('');
 
   // useMemo takes two arguments:
   //   1. A function that computes the value (the "factory")
   //   2. A dependency array — re-compute only when these values change
-  const filtered = useMemo(() => {
+  const filtered: ListItem[] = useMemo((): ListItem[] => {
     // This filter runs through 10,000 items.
     // useMemo ensures it only runs when 'search' actually changes.
-    return LARGE_LIST.filter(item =>
+    return LARGE_LIST.filter((item: ListItem): boolean =>
       item.name.toLowerCase().includes(search.toLowerCase())
     );
   }, [search]);  // ← only re-run when search changes
@@ -191,8 +207,8 @@ function FilterDemo() {
   // useMemo returns the cached result — zero computation.
   return (
     <>
-      <input value={search} onChange={e => setSearch(e.target.value)} />
-      {filtered.map(item => <div key={item.id}>{item.name}</div>)}
+      <input value={search} onChange={(e: React.ChangeEvent<HTMLInputElement>): void => setSearch(e.target.value)} />
+      {filtered.map((item: ListItem): React.ReactElement => <div key={item.id}>{item.name}</div>)}
     </>
   );
 }`}
@@ -218,20 +234,25 @@ function FilterDemo() {
           code={`import { useState, useMemo } from 'react';
 import { View, Text, TextInput, FlatList, StyleSheet } from 'react-native';
 
-const ALL_CONTACTS = [
+interface Contact {
+  id: string;
+  name: string;
+}
+
+const ALL_CONTACTS: Contact[] = [
   { id: '1', name: 'Alice Johnson' },
   { id: '2', name: 'Bob Smith' },
   // ... imagine thousands of contacts
 ];
 
-export default function ContactsScreen() {
-  const [search, setSearch] = useState('');
+export default function ContactsScreen(): React.ReactElement {
+  const [search, setSearch] = useState<string>('');
 
   // Only re-filter when search text changes
-  const filteredContacts = useMemo(() => {
+  const filteredContacts: Contact[] = useMemo((): Contact[] => {
     if (!search.trim()) return ALL_CONTACTS;
-    const query = search.toLowerCase();
-    return ALL_CONTACTS.filter(c =>
+    const query: string = search.toLowerCase();
+    return ALL_CONTACTS.filter((c: Contact): boolean =>
       c.name.toLowerCase().includes(query)
     );
   }, [search]);
@@ -246,8 +267,8 @@ export default function ContactsScreen() {
       />
       <FlatList
         data={filteredContacts}
-        keyExtractor={item => item.id}
-        renderItem={({ item }) => (
+        keyExtractor={(item: Contact): string => item.id}
+        renderItem={({ item }: { item: Contact }): React.ReactElement => (
           <View style={styles.contact}>
             <Text style={styles.name}>{item.name}</Text>
           </View>

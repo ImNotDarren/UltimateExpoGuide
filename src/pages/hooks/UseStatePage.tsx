@@ -8,6 +8,8 @@ import { DemoBox } from '../../components/DemoBox'
 export function UseStatePage() {
   const [count, setCount] = useState(0)
   const [text, setText] = useState('')
+  const [showCounterSource, setShowCounterSource] = useState(false)
+  const [showInputSource, setShowInputSource] = useState(false)
 
   return (
     <PageShell
@@ -25,13 +27,13 @@ export function UseStatePage() {
           In vanilla JavaScript, when you want to store a value (like a counter), you use a variable:
         </p>
         <CodeBlock
-          code={`let count = 0;
+          code={`let count: number = 0;
 
-document.getElementById('btn').addEventListener('click', () => {
+document.getElementById('btn')!.addEventListener('click', (): void => {
   count++;
-  document.getElementById('display').textContent = count;
+  document.getElementById('display')!.textContent = String(count);
 });`}
-          language="javascript"
+          language="typescript"
           title="Vanilla JS — manual DOM updates"
         />
         <p className="text-text-muted leading-relaxed">
@@ -52,9 +54,9 @@ document.getElementById('btn').addEventListener('click', () => {
         <CodeBlock
           code={`import { useState } from 'react';
 
-function MyComponent() {
+function MyComponent(): React.ReactElement {
   // Destructure into [currentValue, setterFunction]
-  const [value, setValue] = useState(initialValue);
+  const [value, setValue] = useState<string>(initialValue);
 
   // value     — the current state value
   // setValue  — a function to update it
@@ -101,6 +103,40 @@ function MyComponent() {
           <p className="text-sm text-text-muted">
             Every time you click a button, <code className="text-accent">setCount</code> is called, React re-renders the component, and the new value appears — no DOM manipulation needed.
           </p>
+
+          <button
+            onClick={() => setShowCounterSource(!showCounterSource)}
+            className="flex items-center gap-2 mt-4 text-text-muted text-sm font-mono transition-colors hover:text-text"
+          >
+            <span className={`inline-block transition-transform ${showCounterSource ? 'rotate-90' : ''}`}>&#9654;</span>
+            {showCounterSource ? 'Hide' : 'View'} Source Code
+          </button>
+          <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${showCounterSource ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+            <div className="overflow-hidden">
+              <div className="mt-3">
+                <CodeBlock
+                  code={`import { useState } from 'react';
+
+const Counter: React.FC = (): React.ReactElement => {
+  const [count, setCount] = useState<number>(0);
+
+  return (
+    <div>
+      <button onClick={(): void => setCount((prev: number) => prev - 1)}>-</button>
+      <span>{count}</span>
+      <button onClick={(): void => setCount((prev: number) => prev + 1)}>+</button>
+      <button onClick={(): void => setCount(0)}>Reset</button>
+    </div>
+  );
+};
+
+export default Counter;`}
+                  language="tsx"
+                  title="Counter source code"
+                />
+              </div>
+            </div>
+          </div>
         </DemoBox>
 
         <DemoBox title="Text Input Demo">
@@ -119,69 +155,44 @@ function MyComponent() {
               Character count: <span className="text-primary font-mono font-semibold">{text.length}</span>
             </p>
           </div>
-        </DemoBox>
 
-        <h3 className="text-lg font-heading font-semibold text-text mt-8">Source Code for the Demos Above</h3>
-        <CodeBlock
-          code={`import { useState } from 'react';
+          <button
+            onClick={() => setShowInputSource(!showInputSource)}
+            className="flex items-center gap-2 mt-4 text-text-muted text-sm font-mono transition-colors hover:text-text"
+          >
+            <span className={`inline-block transition-transform ${showInputSource ? 'rotate-90' : ''}`}>&#9654;</span>
+            {showInputSource ? 'Hide' : 'View'} Source Code
+          </button>
+          <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${showInputSource ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+            <div className="overflow-hidden">
+              <div className="mt-3">
+                <CodeBlock
+                  code={`import { useState } from 'react';
 
-function CounterAndInputDemo() {
-  // Each useState call creates one independent piece of state.
-  // count starts at 0, text starts as an empty string.
-  const [count, setCount] = useState(0);
-  const [text, setText] = useState('');
+const TextInput: React.FC = (): React.ReactElement => {
+  const [text, setText] = useState<string>('');
 
   return (
     <div>
-      {/* ── Counter ── */}
-      {/* setCount(prev => prev - 1) uses a "functional update":
-          instead of passing the new value directly, you pass a function
-          that receives the previous value. This is safer when updates
-          might be batched together. */}
-      <button onClick={() => setCount(prev => prev - 1)}>-</button>
-      <span>{count}</span>
-      <button onClick={() => setCount(prev => prev + 1)}>+</button>
-      <button onClick={() => setCount(0)}>Reset</button>
-
-      {/* ── Text input ── */}
-      {/* "Controlled input" pattern:
-          1. value={text} — React controls what the input displays
-          2. onChange — fires on every keystroke
-          3. e.target.value — the current input string
-          4. setText(e.target.value) — updates state, React re-renders,
-             and the input now shows the new text */}
       <input
         value={text}
-        onChange={(e) => setText(e.target.value)}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>): void => setText(e.target.value)}
         placeholder="Type something..."
       />
       <p>You typed: {text}</p>
       <p>Character count: {text.length}</p>
     </div>
   );
-}`}
-          language="tsx"
-          title="Demo source code — Counter + Text Input"
-        />
+};
 
-        <p className="text-text-muted leading-relaxed">
-          <strong className="text-text">Key takeaways from this code:</strong>
-        </p>
-        <ul className="list-disc list-inside text-text-muted space-y-2 ml-2">
-          <li>
-            <code className="text-accent">useState(0)</code> creates a state variable that starts at <code className="text-accent">0</code>.
-            It returns an array: the current value (<code className="text-accent">count</code>) and a setter function (<code className="text-accent">setCount</code>).
-          </li>
-          <li>
-            <code className="text-accent">setCount(prev =&gt; prev + 1)</code> is a <strong className="text-text">functional update</strong> — the safest way to update state that depends on the previous value.
-          </li>
-          <li>
-            The text input is a <strong className="text-text">controlled input</strong>: React owns the value via <code className="text-accent">value={'{text}'}</code>, and every keystroke triggers <code className="text-accent">setText</code>, causing a re-render with the new text.
-          </li>
-          <li>
-            <code className="text-accent">{'{text.length}'}</code> inside the JSX evaluates to a number — curly braces let you embed any JavaScript expression.
-          </li>
-        </ul>
+export default TextInput;`}
+                  language="tsx"
+                  title="Text Input source code"
+                />
+              </div>
+            </div>
+          </div>
+        </DemoBox>
       </section>
 
       {/* React Native equivalent */}
@@ -195,18 +206,18 @@ function CounterAndInputDemo() {
           code={`import { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
 
-export default function CounterScreen() {
-  const [count, setCount] = useState(0);
-  const [text, setText] = useState('');
+export default function CounterScreen(): React.ReactElement {
+  const [count, setCount] = useState<number>(0);
+  const [text, setText] = useState<string>('');
 
   return (
     <View style={styles.container}>
       {/* Counter */}
       <Text style={styles.count}>{count}</Text>
       <View style={styles.row}>
-        <Button title="-" onPress={() => setCount(prev => prev - 1)} />
-        <Button title="+" onPress={() => setCount(prev => prev + 1)} />
-        <Button title="Reset" onPress={() => setCount(0)} />
+        <Button title="-" onPress={(): void => setCount((prev: number) => prev - 1)} />
+        <Button title="+" onPress={(): void => setCount((prev: number) => prev + 1)} />
+        <Button title="Reset" onPress={(): void => setCount(0)} />
       </View>
 
       {/* Text Input */}
@@ -265,22 +276,30 @@ const styles = StyleSheet.create({
         <h2 className="text-2xl font-heading font-bold text-text">Quick Reference</h2>
         <CodeBlock
           code={`// Numbers
-const [count, setCount] = useState(0);
+const [count, setCount] = useState<number>(0);
 
 // Strings
-const [name, setName] = useState('');
+const [name, setName] = useState<string>('');
 
 // Booleans
-const [isOpen, setIsOpen] = useState(false);
+const [isOpen, setIsOpen] = useState<boolean>(false);
 
 // Arrays
-const [items, setItems] = useState([]);
-setItems(prev => [...prev, newItem]);  // add
-setItems(prev => prev.filter(i => i.id !== id));  // remove
+interface Item {
+  id: string;
+  title: string;
+}
+const [items, setItems] = useState<Item[]>([]);
+setItems((prev: Item[]): Item[] => [...prev, newItem]);  // add
+setItems((prev: Item[]): Item[] => prev.filter((i: Item): boolean => i.id !== id));  // remove
 
 // Objects
-const [user, setUser] = useState({ name: '', age: 0 });
-setUser(prev => ({ ...prev, name: 'Alice' }));  // update one field`}
+interface User {
+  name: string;
+  age: number;
+}
+const [user, setUser] = useState<User>({ name: '', age: 0 });
+setUser((prev: User): User => ({ ...prev, name: 'Alice' }));  // update one field`}
           language="tsx"
           title="Common useState patterns"
         />

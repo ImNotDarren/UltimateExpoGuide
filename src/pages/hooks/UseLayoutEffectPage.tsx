@@ -118,8 +118,13 @@ useLayoutEffect(() => {
         </p>
 
         <CodeBlock
-          code={`const [showTooltip, setShowTooltip] = useState(false);
-const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0 });
+          code={`interface TooltipPosition {
+  top: number;
+  left: number;
+}
+
+const [showTooltip, setShowTooltip] = useState<boolean>(false);
+const [tooltipPos, setTooltipPos] = useState<TooltipPosition>({ top: 0, left: 0 });
 const buttonRef = useRef<HTMLButtonElement>(null);
 const tooltipRef = useRef<HTMLDivElement>(null);
 
@@ -204,9 +209,9 @@ useLayoutEffect(() => {
           code={`import { useState, useRef, useLayoutEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
-export default function MeasuredBox() {
+export default function MeasuredBox(): React.ReactElement {
   const viewRef = useRef<View>(null);
-  const [height, setHeight] = useState(0);
+  const [height, setHeight] = useState<number>(0);
 
   useLayoutEffect(() => {
     // Measure after layout but before paint

@@ -135,8 +135,8 @@ useEffect(() => {
 
         <CodeBlock
           code={`// The code powering the demo above
-const [time, setTime] = useState(new Date());
-const [clockRunning, setClockRunning] = useState(true);
+const [time, setTime] = useState<Date>(new Date());
+const [clockRunning, setClockRunning] = useState<boolean>(true);
 
 useEffect(() => {
   if (!clockRunning) return;  // Don't start an interval if paused
@@ -164,18 +164,24 @@ useEffect(() => {
           code={`import { useState, useEffect } from 'react';
 import { View, Text, FlatList, ActivityIndicator, StyleSheet } from 'react-native';
 
-export default function UsersScreen() {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+interface User {
+  id: number;
+  name: string;
+  email: string;
+}
 
-  useEffect(() => {
+export default function UsersScreen(): React.ReactElement {
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect((): void => {
     // Fetch data on mount
-    async function loadUsers() {
+    async function loadUsers(): Promise<void> {
       try {
-        const response = await fetch('https://jsonplaceholder.typicode.com/users');
-        const data = await response.json();
+        const response: Response = await fetch('https://jsonplaceholder.typicode.com/users');
+        const data: User[] = await response.json();
         setUsers(data);
-      } catch (error) {
+      } catch (error: unknown) {
         console.error('Failed to fetch users:', error);
       } finally {
         setLoading(false);
@@ -190,8 +196,8 @@ export default function UsersScreen() {
   return (
     <FlatList
       data={users}
-      keyExtractor={(item) => String(item.id)}
-      renderItem={({ item }) => (
+      keyExtractor={(item: User): string => String(item.id)}
+      renderItem={({ item }: { item: User }): React.ReactElement => (
         <View style={styles.card}>
           <Text style={styles.name}>{item.name}</Text>
           <Text style={styles.email}>{item.email}</Text>
@@ -252,10 +258,10 @@ useEffect(() => {
 }, [count]);
 
 // Async inside useEffect (you can't make the effect itself async)
-useEffect(() => {
-  async function fetchData() {
-    const res = await fetch(url);
-    const json = await res.json();
+useEffect((): void => {
+  async function fetchData(): Promise<void> {
+    const res: Response = await fetch(url);
+    const json: DataType = await res.json();
     setData(json);
   }
   fetchData();
