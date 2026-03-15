@@ -307,10 +307,12 @@ export function ReactPrimer() {
 
         {/* Tab pills */}
         <div className="flex justify-center mb-10">
-          <div className="inline-flex gap-1.5 p-1.5 rounded-2xl bg-card border border-border">
+          <div className="inline-flex gap-1.5 p-1.5 rounded-2xl bg-card border border-border" role="tablist">
             {TABS.map((t) => (
               <button
                 key={t.id}
+                role="tab"
+                aria-selected={activeTab === t.id}
                 onClick={() => setActiveTab(t.id)}
                 className={`px-6 py-3 rounded-xl text-sm font-heading font-semibold transition-all ${
                   activeTab === t.id
@@ -325,7 +327,7 @@ export function ReactPrimer() {
         </div>
 
         {/* Tab content */}
-        <div>
+        <div key={activeTab} className="animate-fade-in" role="tabpanel">
           <h3 className="text-2xl font-heading font-bold mb-2">{content.title}</h3>
           <p className="text-text-muted mb-8 text-lg leading-relaxed">{content.desc}</p>
 

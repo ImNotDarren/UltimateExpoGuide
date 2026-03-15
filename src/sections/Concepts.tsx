@@ -207,6 +207,97 @@ const styles = StyleSheet.create({
       },
     },
   },
+  {
+    id: 'lists',
+    label: 'Lists',
+    gradient: 'from-cyan to-primary',
+    content: {
+      title: 'Lists & FlatList',
+      desc: 'On the web you map() over an array inside a scrollable div. In React Native, use FlatList — it only renders items on screen for better performance.',
+      comparison: [
+        ['array.map()', '<FlatList data={array} />', 'List rendering'],
+        ['<div> wrapper', 'Built-in ScrollView', 'Scrolling'],
+        ['key={id}', 'keyExtractor={item => id}', 'Unique keys'],
+        ['No virtualization', 'Virtualized by default', 'Performance'],
+        ['Manual empty state', 'ListEmptyComponent', 'Empty list UI'],
+        ['CSS for separators', 'ItemSeparatorComponent', 'Built-in separators'],
+        ['Manual pull-to-refresh', 'onRefresh + refreshing', 'Pull to refresh'],
+      ],
+      code: `import { useState } from 'react';
+import { View, Text, FlatList, StyleSheet } from 'react-native';
+
+interface Student {
+  id: string;
+  name: string;
+  grade: string;
+}
+
+const STUDENTS: Student[] = [
+  { id: '1', name: 'Alice', grade: 'A' },
+  { id: '2', name: 'Bob', grade: 'B+' },
+  { id: '3', name: 'Charlie', grade: 'A-' },
+  { id: '4', name: 'Diana', grade: 'A' },
+];
+
+export default function GradeList() {
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    // Simulate fetching updated grades
+    await new Promise(r => setTimeout(r, 1000));
+    setRefreshing(false);
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Class Grades</Text>
+      <FlatList
+        data={STUDENTS}
+        keyExtractor={item => item.id}
+        renderItem={({ item }) => (
+          <View style={styles.row}>
+            <Text style={styles.name}>{item.name}</Text>
+            <Text style={styles.grade}>{item.grade}</Text>
+          </View>
+        )}
+        ItemSeparatorComponent={() => (
+          <View style={styles.separator} />
+        )}
+        ListEmptyComponent={
+          <Text style={styles.empty}>No students yet</Text>
+        }
+        onRefresh={onRefresh}
+        refreshing={refreshing}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 20, paddingTop: 60, backgroundColor: '#0F172A' },
+  title: { fontSize: 24, fontWeight: 'bold', color: '#F8FAFC', marginBottom: 16 },
+  row: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    backgroundColor: '#1E293B', borderRadius: 12, padding: 16,
+  },
+  name: { color: '#F8FAFC', fontSize: 16 },
+  grade: { color: '#22C55E', fontSize: 16, fontWeight: 'bold' },
+  separator: { height: 8 },
+  empty: { textAlign: 'center', color: '#64748B', marginTop: 40 },
+});`,
+      quiz: {
+        question: 'Why should you use FlatList instead of map() with ScrollView for long lists?',
+        options: [
+          { text: 'FlatList has nicer syntax' },
+          { text: 'ScrollView doesn\'t support scrolling' },
+          { text: 'FlatList only renders visible items, saving memory and improving performance', correct: true },
+          { text: 'map() doesn\'t work in React Native' },
+        ],
+        explanation: 'FlatList virtualizes the list — it only renders items currently visible on screen. With map() inside a ScrollView, ALL items are rendered at once, which causes lag and high memory usage for long lists.',
+      },
+    },
+  },
 ]
 
 export function Concepts() {
@@ -232,10 +323,12 @@ export function Concepts() {
 
         {/* Tab pills */}
         <div className="flex justify-center mb-12">
-          <div className="inline-flex gap-1.5 p-1.5 rounded-2xl bg-card border border-border">
+          <div className="inline-flex gap-1.5 p-1.5 rounded-2xl bg-card border border-border" role="tablist">
             {TABS.map((t) => (
               <button
                 key={t.id}
+                role="tab"
+                aria-selected={activeTab === t.id}
                 onClick={() => setActiveTab(t.id)}
                 className={`px-6 py-3 rounded-xl text-sm font-heading font-semibold transition-all ${
                   activeTab === t.id
@@ -250,11 +343,11 @@ export function Concepts() {
         </div>
 
         {/* Tab content */}
-        <div>
+        <div key={activeTab} className="animate-fade-in" role="tabpanel">
           <h3 className="text-2xl font-heading font-bold mb-2">{tab.content.title}</h3>
           <p className="text-text-muted mb-8 text-lg">{tab.content.desc}</p>
 
-          <div className="grid lg:grid-cols-2 gap-6">
+          <div className="grid lg:grid-cols-[2fr_3fr] gap-6">
             {/* Left: comparison table + quiz */}
             <div>
               <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-lg shadow-black/10 mb-6">

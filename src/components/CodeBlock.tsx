@@ -21,7 +21,7 @@ export function CodeBlock({ code, language = 'tsx', title, showLineNumbers = tru
   }
 
   return (
-    <div className="rounded-2xl overflow-hidden border border-border bg-code-bg shadow-lg shadow-black/20 my-4">
+    <div className="rounded-2xl overflow-hidden border border-border bg-code-bg shadow-lg shadow-black/20">
       {title && (
         <div className="flex items-center justify-between px-5 py-3 bg-surface border-b border-border">
           <span className="text-xs font-mono text-text-muted font-medium">{title}</span>
@@ -31,7 +31,7 @@ export function CodeBlock({ code, language = 'tsx', title, showLineNumbers = tru
       <div className="relative group">
         <button
           onClick={handleCopy}
-          className="absolute top-3 right-3 p-2.5 rounded-lg bg-surface border border-border hover:bg-surface-light text-text-muted hover:text-text transition-all duration-200 opacity-0 group-hover:opacity-100 z-10"
+          className="absolute top-3 right-3 p-2.5 rounded-lg bg-surface border border-border hover:bg-surface-light text-text-muted hover:text-text transition-all duration-200 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 z-10"
           aria-label="Copy code"
         >
           {copied ? <Check size={14} className="text-primary" /> : <Copy size={14} />}
@@ -40,7 +40,7 @@ export function CodeBlock({ code, language = 'tsx', title, showLineNumbers = tru
           {({ style, tokens, getLineProps, getTokenProps }) => (
             <pre
               style={{ ...style, background: 'var(--color-code-bg)' }}
-              className="overflow-x-auto p-5 text-sm leading-relaxed"
+              className="p-5 text-sm leading-relaxed overflow-x-auto whitespace-pre"
             >
               {tokens.map((line, i) => (
                 <div key={i} {...getLineProps({ line })}>

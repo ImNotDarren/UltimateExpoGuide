@@ -16,6 +16,7 @@ function Step({ num, title, children, gradient, defaultOpen = false }: StepProps
     <div className={`rounded-2xl border ${open ? 'border-border-light bg-card' : 'border-border bg-card/80'} overflow-hidden transition-all shadow-lg shadow-black/10`}>
       <button
         onClick={() => setOpen(!open)}
+        aria-expanded={open}
         className={`w-full flex items-center gap-4 px-6 py-5 hover:bg-card-hover transition-colors text-left`}
       >
         <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shrink-0 shadow-md`}>
@@ -50,7 +51,7 @@ function CopyCommand({ command }: { command: string }) {
       <code className="font-mono text-sm text-text flex-1 overflow-x-auto">{command}</code>
       <button
         onClick={handleCopy}
-        className="shrink-0 p-2 rounded-lg bg-surface hover:bg-surface-light text-text-muted hover:text-text transition-colors opacity-0 group-hover:opacity-100"
+        className="shrink-0 p-2 rounded-lg bg-surface hover:bg-surface-light text-text-muted hover:text-text transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
         aria-label="Copy"
       >
         {copied ? <Check size={14} className="text-primary" /> : <Copy size={14} />}

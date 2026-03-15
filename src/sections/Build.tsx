@@ -1,4 +1,5 @@
 import { CodeBlock } from '../components/CodeBlock'
+import { ExpoSnack } from '../components/ExpoSnack'
 import { ExternalLink } from 'lucide-react'
 
 export function Build() {
@@ -229,20 +230,25 @@ const styles = StyleSheet.create({
         </div>
 
         {/* Try it live */}
-        <div className="mt-12 rounded-2xl bg-gradient-to-br from-primary/10 to-cyan/5 border border-primary/30 p-8 text-center shadow-lg shadow-black/10">
-          <h4 className="font-heading font-bold text-text text-xl mb-3">Try it on Expo Snack</h4>
-          <p className="text-text-muted mb-6 max-w-lg mx-auto">
-            Paste the code above into Expo Snack to run it directly in your browser or on your phone.
-          </p>
-          <a
-            href="https://snack.expo.dev"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-primary to-cyan text-white font-heading font-semibold text-sm shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all"
-          >
-            Open Expo Snack
-            <ExternalLink size={16} />
-          </a>
+        <div className="mt-12">
+          <div className="text-center mb-6">
+            <h4 className="font-heading font-bold text-text text-xl mb-3">Try it on Expo Snack</h4>
+            <p className="text-text-muted max-w-lg mx-auto">
+              Edit and run this code directly in your browser — no setup needed.
+            </p>
+          </div>
+          <ExpoSnack id="@snack/todo-app-example" title="Todo App" platform="web" height={550} />
+          <div className="mt-4 text-center">
+            <a
+              href="https://snack.expo.dev"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm text-text-muted hover:text-accent transition-colors"
+            >
+              Open in full Expo Snack
+              <ExternalLink size={14} />
+            </a>
+          </div>
         </div>
       </div>
     </section>

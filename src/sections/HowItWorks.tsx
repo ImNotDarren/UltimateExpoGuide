@@ -37,7 +37,7 @@ const STEPS = [
 
 export function HowItWorks() {
   return (
-    <section className="relative py-28 px-6">
+    <section id="how-it-works" className="relative py-28 px-6">
       <div className="absolute top-1/2 -translate-y-1/2 -right-40 w-[500px] h-[500px] rounded-full bg-cyan/5 blur-[150px] pointer-events-none" />
 
       <div className="max-w-6xl mx-auto relative">
@@ -81,7 +81,7 @@ export function HowItWorks() {
                   <div className="w-3 h-3 rounded-full bg-primary/70" />
                   <span className="ml-2 text-xs text-text-muted/40 font-mono">terminal</span>
                 </div>
-                <pre className="font-mono text-sm text-text-muted leading-relaxed whitespace-pre overflow-x-auto">
+                <pre className="font-mono text-sm text-text-muted leading-relaxed whitespace-pre-wrap break-words">
                   {step.code}
                 </pre>
               </div>

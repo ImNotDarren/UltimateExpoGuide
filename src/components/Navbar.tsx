@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { Menu, X, Smartphone, Sun, Moon, BookOpen } from 'lucide-react'
 
@@ -6,8 +6,10 @@ const SECTION_ITEMS = [
   { label: 'Home', section: 'hero' },
   { label: 'Why Expo?', section: 'why-expo' },
   { label: 'React Primer', section: 'react-primer' },
+  { label: 'How It Works', section: 'how-it-works' },
   { label: 'Setup', section: 'setup' },
   { label: 'Concepts', section: 'concepts' },
+  { label: 'Lifecycle', section: 'lifecycle' },
   { label: 'Build', section: 'build' },
   { label: 'Resources', section: 'resources' },
 ]
@@ -23,9 +25,11 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [theme, setTheme] = useState<'dark' | 'light'>(getInitialTheme)
+  const [activeSection, setActiveSection] = useState('hero')
   const location = useLocation()
   const navigate = useNavigate()
   const isHome = location.pathname === '/'
+  const observerRef = useRef<IntersectionObserver | null>(null)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50)
@@ -37,6 +41,33 @@ export function Navbar() {
     document.documentElement.classList.toggle('light', theme === 'light')
     localStorage.setItem('theme', theme)
   }, [theme])
+
+  // IntersectionObserver for active section tracking
+  useEffect(() => {
+    if (!isHome) return
+
+    const sectionIds = SECTION_ITEMS.map((item) => item.section)
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setActiveSection(entry.target.id)
+          }
+        }
+      },
+      { rootMargin: '-20% 0px -70% 0px' }
+    )
+
+    for (const id of sectionIds) {
+      const el = document.getElementById(id)
+      if (el) observerRef.current.observe(el)
+    }
+
+    return () => {
+      observerRef.current?.disconnect()
+    }
+  }, [isHome])
 
   const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
 
@@ -75,7 +106,11 @@ export function Navbar() {
             <button
               key={item.section}
               onClick={() => scrollToSection(item.section)}
-              className="px-3 py-2 rounded-lg text-sm text-text-muted hover:text-text hover:bg-card transition-colors"
+              className={`px-3 py-2 rounded-lg text-sm transition-colors ${
+                isHome && activeSection === item.section
+                  ? 'text-accent bg-accent/10 font-medium'
+                  : 'text-text-muted hover:text-text hover:bg-card'
+              }`}
             >
               {item.label}
             </button>
@@ -122,7 +157,11 @@ export function Navbar() {
             <button
               key={item.section}
               onClick={() => scrollToSection(item.section)}
-              className="block w-full text-left px-4 py-3 rounded-lg text-sm text-text-muted hover:text-text hover:bg-surface transition-colors"
+              className={`block w-full text-left px-4 py-3 rounded-lg text-sm transition-colors ${
+                isHome && activeSection === item.section
+                  ? 'text-accent bg-accent/10 font-medium'
+                  : 'text-text-muted hover:text-text hover:bg-surface'
+              }`}
             >
               {item.label}
             </button>
