@@ -5,7 +5,7 @@ import { CodeBlock } from '../../components/CodeBlock'
 import { InfoBox } from '../../components/InfoBox'
 import { DemoBox } from '../../components/DemoBox'
 
-// Generate a large list for the demo
+// Generate a large list for the demo (simulating FlatList data source)
 const LARGE_LIST = Array.from({ length: 10000 }, (_, i) => ({
   id: i,
   name: `Item ${i + 1} — ${['Apple', 'Banana', 'Cherry', 'Date', 'Elderberry', 'Fig', 'Grape', 'Honeydew', 'Kiwi', 'Lemon'][i % 10]}`,
@@ -51,39 +51,48 @@ export function UseMemoPage() {
       <section className="space-y-4 mb-12">
         <h2 className="text-2xl font-heading font-bold text-text">What is useMemo?</h2>
         <p className="text-text-muted leading-relaxed">
-          Every time a React component re-renders, <em>all the code</em> inside the function runs again.
-          Most of the time this is perfectly fine — JavaScript is fast. But sometimes you have an
-          <strong className="text-text"> expensive computation</strong> that should only re-run when specific inputs change:
+          In React Native, a <code className="text-accent">FlatList</code> often displays data that has been filtered, sorted, or transformed.
+          Without <code className="text-accent">useMemo</code>, these computations run on <strong className="text-text">every single render</strong> — even
+          when the source data and filter criteria haven't changed. On mobile devices with thousands of items, this causes noticeable jank:
         </p>
         <CodeBlock
-          code={`interface Product {
+          code={`interface Contact {
   id: string;
   name: string;
-  price: number;
+  phone: string;
 }
 
-interface ProductListProps {
-  products: Product[];
-  searchTerm: string;
-}
+function ContactList({ contacts }: { contacts: Contact[] }): React.ReactElement {
+  const [search, setSearch] = useState<string>('');
 
-function ProductList({ products, searchTerm }: ProductListProps): React.ReactElement {
-  // This runs on EVERY render — even if products and searchTerm haven't changed
-  const filtered: Product[] = products.filter((p: Product): boolean =>
-    p.name.toLowerCase().includes(searchTerm.toLowerCase())
+  // ❌ This filter runs on EVERY render — even if search and contacts haven't changed.
+  // When a parent re-renders, a modal opens, or any unrelated state updates,
+  // this loops through potentially thousands of contacts for no reason.
+  const filtered: Contact[] = contacts.filter((c: Contact): boolean =>
+    c.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  // If 'products' has 50,000 items and the component re-renders because
-  // of an unrelated state change (like a modal opening), this filter
-  // runs again unnecessarily.
-  return <>{filtered.map((p: Product) => <Product key={p.id} {...p} />)}</>;
+  // Worse: 'filtered' is a new array reference every time, so FlatList
+  // has to diff every item even if the contents are identical.
+  return (
+    <View>
+      <TextInput value={search} onChangeText={setSearch} placeholder="Search..." />
+      <FlatList
+        data={filtered}
+        renderItem={({ item }: { item: Contact }): React.ReactElement => (
+          <ContactRow contact={item} />
+        )}
+        keyExtractor={(item: Contact): string => item.id}
+      />
+    </View>
+  );
 }`}
           language="tsx"
-          title="The problem — unnecessary re-computation"
+          title="The problem — filtering on every render"
         />
         <p className="text-text-muted leading-relaxed">
-          <code className="text-accent">useMemo</code> caches (memoizes) the result. React remembers what you computed
-          and only re-runs the calculation when one of the listed dependencies changes.
+          <code className="text-accent">useMemo</code> caches the result of the computation. React remembers what you computed
+          and only re-runs the calculation when a dependency changes — saving the FlatList from receiving a new <code className="text-accent">data</code> array on every render.
         </p>
       </section>
 
@@ -113,8 +122,13 @@ const result = useMemo(
       <section className="space-y-4 mb-12">
         <h2 className="text-2xl font-heading font-bold text-text">Interactive Demo</h2>
 
-        <DemoBox title="Filter 10,000 Items — with vs. without useMemo">
+        <DemoBox title="FlatList Data Filtering — with vs. without useMemo">
           <div className="space-y-4">
+            <p className="text-sm text-text-muted">
+              Simulates filtering 10,000 items before passing them to a <code className="text-accent">FlatList</code>.
+              Toggle useMemo on and off, then hit <strong className="text-text">"Force Re-render"</strong> to see the difference.
+            </p>
+
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
               <input
                 type="text"
@@ -152,7 +166,8 @@ const result = useMemo(
             </button>
 
             <p className="text-xs text-text-muted">
-              With useMemo ON, clicking "Force Re-render" uses the cached result. With it OFF, the filter runs again even though the search text has not changed.
+              With useMemo ON, clicking "Force Re-render" returns the cached result instantly — the filter does not run again.
+              With it OFF, the filter re-processes all 10,000 items even though the search text hasn't changed.
             </p>
 
             <div className="max-h-48 overflow-y-auto rounded-lg bg-surface border border-border">
@@ -170,6 +185,12 @@ const result = useMemo(
                 </div>
               )}
             </div>
+
+            <InfoBox variant="info" title="Why this matters for FlatList">
+              When you pass a new array reference to <code className="text-accent">FlatList</code>'s <code className="text-accent">data</code> prop,
+              it triggers a diff of every item — even if the contents are identical. <code className="text-accent">useMemo</code> ensures
+              the same array reference is reused when nothing has changed, so FlatList skips the diff entirely.
+            </InfoBox>
           </div>
         </DemoBox>
 
@@ -185,26 +206,22 @@ interface ListItem {
 // A large dataset created once (outside the component)
 const LARGE_LIST: ListItem[] = Array.from({ length: 10000 }, (_, i: number): ListItem => ({
   id: i,
-  name: \`Item \${i + 1} — \${fruits[i % 10]}\`,
+  name: \`Item \${i + 1}\`,
 }));
 
 function FilterDemo(): React.ReactElement {
   const [search, setSearch] = useState<string>('');
 
-  // useMemo takes two arguments:
-  //   1. A function that computes the value (the "factory")
-  //   2. A dependency array — re-compute only when these values change
+  // useMemo caches the filtered array.
+  // It only re-runs the filter when 'search' actually changes.
+  // On unrelated re-renders (parent update, modal open, etc.),
+  // React returns the cached array — zero computation, same reference.
   const filtered: ListItem[] = useMemo((): ListItem[] => {
-    // This filter runs through 10,000 items.
-    // useMemo ensures it only runs when 'search' actually changes.
     return LARGE_LIST.filter((item: ListItem): boolean =>
       item.name.toLowerCase().includes(search.toLowerCase())
     );
-  }, [search]);  // ← only re-run when search changes
+  }, [search]);
 
-  // If the component re-renders for ANY other reason
-  // (parent re-renders, unrelated state changes),
-  // useMemo returns the cached result — zero computation.
   return (
     <>
       <input value={search} onChange={(e: React.ChangeEvent<HTMLInputElement>): void => setSearch(e.target.value)} />
@@ -213,49 +230,61 @@ function FilterDemo(): React.ReactElement {
   );
 }`}
           language="tsx"
-          title="Demo source code — useMemo for expensive filtering"
+          title="Demo source — useMemo for caching filtered data"
         />
-
-        <p className="text-text-muted leading-relaxed">
-          <strong className="text-text">How it works:</strong> <code className="text-accent">useMemo</code> caches the return value of the function.
-          On the next render, React checks if any dependency has changed. If not, it returns the cached value without running the function.
-          Think of it like a spreadsheet cell that only recalculates when its inputs change.
-        </p>
       </section>
 
-      {/* React Native equivalent */}
+      {/* The Full FlatList Pattern */}
       <section className="space-y-4 mb-12">
-        <h2 className="text-2xl font-heading font-bold text-text">In React Native</h2>
+        <h2 className="text-2xl font-heading font-bold text-text">The Full FlatList Pattern</h2>
         <p className="text-text-muted leading-relaxed">
-          <code className="text-accent">useMemo</code> is especially useful in React Native when filtering data for a <code className="text-accent">FlatList</code>.
-          Re-computing large lists on every render can cause noticeable jank on mobile devices:
+          Use <code className="text-accent">useMemo</code> to cache filtered or sorted data before handing it to
+          <code className="text-accent"> FlatList</code>. Combine with <code className="text-accent">useCallback</code> on <code className="text-accent">renderItem</code> for the complete optimization.
         </p>
         <CodeBlock
-          code={`import { useState, useMemo } from 'react';
+          code={`import { useState, useMemo, useCallback } from 'react';
 import { View, Text, TextInput, FlatList, StyleSheet } from 'react-native';
 
 interface Contact {
   id: string;
   name: string;
+  phone: string;
 }
 
 const ALL_CONTACTS: Contact[] = [
-  { id: '1', name: 'Alice Johnson' },
-  { id: '2', name: 'Bob Smith' },
-  // ... imagine thousands of contacts
+  { id: '1', name: 'Alice Johnson', phone: '555-0101' },
+  { id: '2', name: 'Bob Smith', phone: '555-0102' },
+  // ... imagine thousands of contacts from an API
 ];
 
 export default function ContactsScreen(): React.ReactElement {
   const [search, setSearch] = useState<string>('');
+  const [sortAsc, setSortAsc] = useState<boolean>(true);
 
-  // Only re-filter when search text changes
+  // useMemo caches the filtered + sorted result.
+  // It only re-computes when search or sortAsc changes.
+  // On unrelated re-renders (modal open, keyboard event), it returns the cached array
+  // — same reference, so FlatList skips its diff entirely.
   const filteredContacts: Contact[] = useMemo((): Contact[] => {
-    if (!search.trim()) return ALL_CONTACTS;
     const query: string = search.toLowerCase();
-    return ALL_CONTACTS.filter((c: Contact): boolean =>
-      c.name.toLowerCase().includes(query)
+    const filtered: Contact[] = !query
+      ? ALL_CONTACTS
+      : ALL_CONTACTS.filter((c: Contact): boolean =>
+          c.name.toLowerCase().includes(query)
+        );
+
+    return [...filtered].sort((a: Contact, b: Contact): number =>
+      sortAsc ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
     );
-  }, [search]);
+  }, [search, sortAsc]);
+
+  // useCallback keeps renderItem stable so FlatList doesn't re-render all items.
+  const renderItem = useCallback(({ item }: { item: Contact }): React.ReactElement => (
+    <View style={styles.contact}>
+      <Text style={styles.name}>{item.name}</Text>
+      <Text style={styles.phone}>{item.phone}</Text>
+    </View>
+  ), []);
 
   return (
     <View style={styles.container}>
@@ -267,12 +296,8 @@ export default function ContactsScreen(): React.ReactElement {
       />
       <FlatList
         data={filteredContacts}
+        renderItem={renderItem}
         keyExtractor={(item: Contact): string => item.id}
-        renderItem={({ item }: { item: Contact }): React.ReactElement => (
-          <View style={styles.contact}>
-            <Text style={styles.name}>{item.name}</Text>
-          </View>
-        )}
       />
     </View>
   );
@@ -285,10 +310,11 @@ const styles = StyleSheet.create({
     padding: 12, fontSize: 16, marginBottom: 12,
   },
   contact: { paddingVertical: 12, borderBottomWidth: 1, borderColor: '#eee' },
-  name: { fontSize: 16 },
+  name: { fontSize: 16, fontWeight: '600' },
+  phone: { fontSize: 14, color: '#666', marginTop: 2 },
 });`}
           language="tsx"
-          title="React Native — useMemo with FlatList filtering"
+          title="React Native — useMemo + useCallback with FlatList"
         />
       </section>
 
@@ -303,7 +329,7 @@ const styles = StyleSheet.create({
         </InfoBox>
 
         <InfoBox variant="tip" title="When to use useMemo">
-          Use it when you can measure a noticeable performance difference — filtering or sorting large lists,
+          Use it when you can measure a noticeable performance difference — filtering or sorting large lists for a FlatList,
           complex mathematical calculations, creating derived data structures. If you are not sure, do not use it.
         </InfoBox>
 
