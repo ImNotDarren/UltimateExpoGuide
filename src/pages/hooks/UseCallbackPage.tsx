@@ -71,12 +71,12 @@ export function UseCallbackPage() {
   const [, setForceRender] = useState(0)
 
   // Without useCallback — new function reference every render
-  const handlePressUnstable = (id: number) => {
+  const handlePressUnstable = (_id: number) => {
     setCount((c) => c + 1)
   }
 
   // With useCallback — same function reference between renders
-  const handlePressStable = useCallback((id: number) => {
+  const handlePressStable = useCallback((_id: number) => {
     setCount((c) => c + 1)
   }, [])
 
