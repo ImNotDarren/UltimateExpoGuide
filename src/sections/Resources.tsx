@@ -82,29 +82,54 @@ export function Resources() {
           ))}
         </div>
 
-        {/* Redux deep dive card */}
-        <Link
-          to="/state/redux"
-          className="group block rounded-2xl bg-gradient-to-br from-purple/10 to-pink/10 border border-purple/20 hover:border-purple/40 p-8 mb-20 transition-all duration-300 glow-card shadow-lg shadow-black/10"
-        >
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <span className="inline-block px-3 py-1 rounded-full bg-purple/10 text-purple text-xs font-mono mb-3">
-                DEEP DIVE
-              </span>
-              <h3 className="font-heading font-bold text-text text-xl mb-2 group-hover:text-purple transition-colors">
-                Redux for Beginners
-              </h3>
-              <p className="text-text-muted leading-relaxed max-w-xl">
-                Learn how to manage complex application state with Redux Toolkit. This guide covers core concepts,
-                step-by-step setup in Expo, async data fetching, and best practices — everything you need to get started.
-              </p>
+        {/* Deep dive cards */}
+        <div className="grid sm:grid-cols-2 gap-4 mb-20">
+          <Link
+            to="/storage/async-storage"
+            className="group block rounded-2xl bg-gradient-to-br from-accent/10 to-primary/10 border border-accent/20 hover:border-accent/40 p-8 transition-all duration-300 glow-card shadow-lg shadow-black/10"
+          >
+            <div className="flex flex-col justify-between h-full gap-4">
+              <div>
+                <span className="inline-block px-3 py-1 rounded-full bg-accent/10 text-accent text-xs font-mono mb-3">
+                  DEEP DIVE
+                </span>
+                <h3 className="font-heading font-bold text-text text-xl mb-2 group-hover:text-accent transition-colors">
+                  AsyncStorage
+                </h3>
+                <p className="text-text-muted leading-relaxed">
+                  The React Native equivalent of localStorage — learn how to persist simple key-value data on the device
+                  so it survives app restarts.
+                </p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center shrink-0 group-hover:bg-accent/20 transition-colors self-end">
+                <ArrowRight size={18} className="text-accent group-hover:translate-x-0.5 transition-transform" />
+              </div>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-purple/10 flex items-center justify-center shrink-0 group-hover:bg-purple/20 transition-colors">
-              <ArrowRight size={20} className="text-purple group-hover:translate-x-0.5 transition-transform" />
+          </Link>
+
+          <Link
+            to="/state/redux"
+            className="group block rounded-2xl bg-gradient-to-br from-purple/10 to-pink/10 border border-purple/20 hover:border-purple/40 p-8 transition-all duration-300 glow-card shadow-lg shadow-black/10"
+          >
+            <div className="flex flex-col justify-between h-full gap-4">
+              <div>
+                <span className="inline-block px-3 py-1 rounded-full bg-purple/10 text-purple text-xs font-mono mb-3">
+                  DEEP DIVE
+                </span>
+                <h3 className="font-heading font-bold text-text text-xl mb-2 group-hover:text-purple transition-colors">
+                  Redux for Beginners
+                </h3>
+                <p className="text-text-muted leading-relaxed">
+                  Learn how to manage complex application state with Redux Toolkit — core concepts,
+                  step-by-step setup in Expo, async data fetching, and best practices.
+                </p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-purple/10 flex items-center justify-center shrink-0 group-hover:bg-purple/20 transition-colors self-end">
+                <ArrowRight size={18} className="text-purple group-hover:translate-x-0.5 transition-transform" />
+              </div>
             </div>
-          </div>
-        </Link>
+          </Link>
+        </div>
 
         {/* What's next */}
         <div className="text-center mb-10">

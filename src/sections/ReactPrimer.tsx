@@ -360,6 +360,8 @@ export function ReactPrimer() {
               { label: 'useRef', desc: 'Persistent references', to: '/hooks/useRef', gradient: 'from-pink to-orange' },
               { label: 'useContext', desc: 'Share data across components', to: '/hooks/useContext', gradient: 'from-primary to-cyan' },
               { label: 'useCallback & useMemo', desc: 'Performance optimization', to: '/hooks/useCallback', gradient: 'from-info to-accent' },
+              { label: 'AsyncStorage', desc: 'Persist data on device', to: '/storage/async-storage', gradient: 'from-accent to-primary' },
+              { label: 'Redux', desc: 'Global state management', to: '/state/redux', gradient: 'from-purple to-pink' },
               { label: 'Navigation Guide', desc: 'Screens, routing & navigation', to: '/navigation', gradient: 'from-primary to-cyan' },
             ].map((item) => (
               <Link

@@ -19,6 +19,7 @@ import { UseHeaderHeightPage } from './pages/hooks/UseHeaderHeightPage'
 import { NavigationGuide } from './pages/NavigationGuide'
 import { ModulesPage } from './pages/basics/ModulesPage'
 import { ReduxPage } from './pages/state/ReduxPage'
+import { LocalStoragePage } from './pages/storage/LocalStoragePage'
 
 function App() {
   return (
@@ -45,6 +46,8 @@ function App() {
         {/* React Navigation Hooks */}
         <Route path="/hooks/useNavigation" element={<UseNavigationPage />} />
         <Route path="/hooks/useHeaderHeight" element={<UseHeaderHeightPage />} />
+        {/* Data & Storage */}
+        <Route path="/storage/async-storage" element={<LocalStoragePage />} />
         {/* State Management */}
         <Route path="/state/redux" element={<ReduxPage />} />
         {/* Navigation Guide */}
