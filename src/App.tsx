@@ -18,6 +18,7 @@ import { UseNavigationPage } from './pages/hooks/UseNavigationPage'
 import { UseHeaderHeightPage } from './pages/hooks/UseHeaderHeightPage'
 import { NavigationGuide } from './pages/NavigationGuide'
 import { ModulesPage } from './pages/basics/ModulesPage'
+import { ReduxPage } from './pages/state/ReduxPage'
 
 function App() {
   return (
@@ -44,6 +45,8 @@ function App() {
         {/* React Navigation Hooks */}
         <Route path="/hooks/useNavigation" element={<UseNavigationPage />} />
         <Route path="/hooks/useHeaderHeight" element={<UseHeaderHeightPage />} />
+        {/* State Management */}
+        <Route path="/state/redux" element={<ReduxPage />} />
         {/* Navigation Guide */}
         <Route path="/navigation" element={<NavigationGuide />} />
         {/* Fallback */}

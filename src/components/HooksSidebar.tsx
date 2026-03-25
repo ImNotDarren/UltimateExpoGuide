@@ -27,6 +27,10 @@ const NAV_HOOKS = [
   { path: '/hooks/useHeaderHeight', label: 'useHeaderHeight' },
 ]
 
+const STATE_MGMT = [
+  { path: '/state/redux', label: 'Redux' },
+]
+
 export function HooksSidebar() {
   const { pathname } = useLocation()
 
@@ -96,6 +100,23 @@ export function HooksSidebar() {
               }`}
             >
               {hook.label}
+            </Link>
+          ))}
+        </div>
+
+        <h4 className="font-heading font-semibold text-text text-sm mt-6 mb-4 uppercase tracking-wider">State Management</h4>
+        <div className="space-y-1">
+          {STATE_MGMT.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`block px-3 py-2 rounded-lg text-sm font-mono transition-colors ${
+                pathname === item.path
+                  ? 'bg-accent/10 text-accent font-semibold'
+                  : 'text-text-muted hover:text-text hover:bg-surface'
+              }`}
+            >
+              {item.label}
             </Link>
           ))}
         </div>

@@ -1,4 +1,5 @@
-import { ExternalLink } from 'lucide-react'
+import { ExternalLink, ArrowRight } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 const RESOURCES = [
   {
@@ -37,7 +38,6 @@ const NEXT_TOPICS = [
   { title: 'Native APIs', desc: 'Camera, Location, Haptics, 50+ more', color: 'text-primary', url: 'https://docs.expo.dev/versions/latest/' },
   { title: 'Animations', desc: 'React Native Reanimated for 60fps', color: 'text-pink', url: 'https://docs.swmansion.com/react-native-reanimated/' },
   { title: 'Deployment', desc: 'Build and submit with EAS', color: 'text-orange', url: 'https://docs.expo.dev/build/introduction/' },
-  { title: 'State Management', desc: 'Zustand, Jotai, or Context API', color: 'text-purple', url: 'https://docs.pmnd.rs/zustand' },
 ]
 
 export function Resources() {
@@ -81,6 +81,30 @@ export function Resources() {
             </a>
           ))}
         </div>
+
+        {/* Redux deep dive card */}
+        <Link
+          to="/state/redux"
+          className="group block rounded-2xl bg-gradient-to-br from-purple/10 to-pink/10 border border-purple/20 hover:border-purple/40 p-8 mb-20 transition-all duration-300 glow-card shadow-lg shadow-black/10"
+        >
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <span className="inline-block px-3 py-1 rounded-full bg-purple/10 text-purple text-xs font-mono mb-3">
+                DEEP DIVE
+              </span>
+              <h3 className="font-heading font-bold text-text text-xl mb-2 group-hover:text-purple transition-colors">
+                Redux for Beginners
+              </h3>
+              <p className="text-text-muted leading-relaxed max-w-xl">
+                Learn how to manage complex application state with Redux Toolkit. This guide covers core concepts,
+                step-by-step setup in Expo, async data fetching, and best practices — everything you need to get started.
+              </p>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-purple/10 flex items-center justify-center shrink-0 group-hover:bg-purple/20 transition-colors">
+              <ArrowRight size={20} className="text-purple group-hover:translate-x-0.5 transition-transform" />
+            </div>
+          </div>
+        </Link>
 
         {/* What's next */}
         <div className="text-center mb-10">
