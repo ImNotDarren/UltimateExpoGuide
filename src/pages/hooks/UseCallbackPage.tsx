@@ -5,39 +5,61 @@ import { CodeBlock } from '../../components/CodeBlock'
 import { InfoBox } from '../../components/InfoBox'
 import { DemoBox } from '../../components/DemoBox'
 
-// --- Demo child components ---
-let withoutCallbackRenderCount = 0
-let withCallbackRenderCount = 0
+// --- Demo types and data ---
+interface DemoItem {
+  id: number
+  title: string
+}
 
-const ChildWithout = memo(function ChildWithout({ onClick }: { onClick: () => void }) {
-  withoutCallbackRenderCount++
+const ITEMS: DemoItem[] = [
+  { id: 0, title: 'Learn Expo Router' },
+  { id: 1, title: 'Build a FlatList' },
+  { id: 2, title: 'Add useCallback' },
+  { id: 3, title: 'Profile performance' },
+  { id: 4, title: 'Ship the app' },
+]
+
+// Module-level render counters for the demo
+let unstableItemRenders = 0
+let stableItemRenders = 0
+
+const UnstableRow = memo(function UnstableRow({
+  item,
+  onPress,
+}: {
+  item: DemoItem
+  onPress: (id: number) => void
+}) {
+  unstableItemRenders++
   return (
-    <div className="p-3 rounded-lg bg-warning/10 border border-warning/30">
-      <p className="text-sm font-mono text-warning">
-        Without useCallback — rendered <strong>{withoutCallbackRenderCount}</strong> times
-      </p>
+    <div className="flex items-center justify-between px-3 py-2 border-b border-warning/10 last:border-0">
+      <span className="text-sm font-mono text-text-muted">{item.title}</span>
       <button
-        onClick={onClick}
-        className="mt-2 px-3 py-1 rounded text-xs font-mono bg-warning/20 text-warning hover:bg-warning/30 transition-colors"
+        onClick={() => onPress(item.id)}
+        className="px-2 py-0.5 rounded text-xs font-mono bg-warning/10 text-warning hover:bg-warning/20 transition-colors"
       >
-        Click me
+        Done
       </button>
     </div>
   )
 })
 
-const ChildWith = memo(function ChildWith({ onClick }: { onClick: () => void }) {
-  withCallbackRenderCount++
+const StableRow = memo(function StableRow({
+  item,
+  onPress,
+}: {
+  item: DemoItem
+  onPress: (id: number) => void
+}) {
+  stableItemRenders++
   return (
-    <div className="p-3 rounded-lg bg-primary/10 border border-primary/30">
-      <p className="text-sm font-mono text-primary">
-        With useCallback — rendered <strong>{withCallbackRenderCount}</strong> times
-      </p>
+    <div className="flex items-center justify-between px-3 py-2 border-b border-primary/10 last:border-0">
+      <span className="text-sm font-mono text-text-muted">{item.title}</span>
       <button
-        onClick={onClick}
-        className="mt-2 px-3 py-1 rounded text-xs font-mono bg-primary/20 text-primary hover:bg-primary/30 transition-colors"
+        onClick={() => onPress(item.id)}
+        className="px-2 py-0.5 rounded text-xs font-mono bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
       >
-        Click me
+        Done
       </button>
     </div>
   )
@@ -49,12 +71,12 @@ export function UseCallbackPage() {
   const [, setForceRender] = useState(0)
 
   // Without useCallback — new function reference every render
-  const handleClickWithout = () => {
+  const handlePressUnstable = (_id: number) => {
     setCount((c) => c + 1)
   }
 
   // With useCallback — same function reference between renders
-  const handleClickWith = useCallback(() => {
+  const handlePressStable = useCallback((_id: number) => {
     setCount((c) => c + 1)
   }, [])
 
@@ -71,28 +93,37 @@ export function UseCallbackPage() {
       <section className="space-y-4 mb-12">
         <h2 className="text-2xl font-heading font-bold text-text">What is useCallback?</h2>
         <p className="text-text-muted leading-relaxed">
-          In JavaScript, every time you write a function expression, you create a <strong className="text-text">brand new function object</strong> — even if the code inside is identical.
-          In a React component, this means every render creates new functions:
+          In React Native, <code className="text-accent">FlatList</code> is the primary way to render scrollable lists efficiently.
+          To optimize performance, you wrap each list item in <code className="text-accent">React.memo</code> so it only re-renders when its props change.
+          But there is a catch — every time the parent re-renders, inline functions create <strong className="text-text">new references</strong>:
         </p>
         <CodeBlock
-          code={`function Parent(): React.ReactElement {
-  // This creates a NEW function on EVERY render
-  const handleClick = (): void => {
-    console.log('clicked');
+          code={`function TodoList(): React.ReactElement {
+  const [todos, setTodos] = useState<Todo[]>(initialTodos);
+
+  // ❌ Creates a NEW function on EVERY render.
+  // Even though the code inside is identical, it's a different object in memory.
+  // Every memo'd FlatList item sees a "new" onDelete prop → all items re-render.
+  const handleDelete = (id: string): void => {
+    setTodos((prev: Todo[]): Todo[] => prev.filter((t: Todo): boolean => t.id !== id));
   };
 
-  // ChildComponent receives a different function reference each time
-  return <ChildComponent onClick={handleClick} />;
+  return (
+    <FlatList
+      data={todos}
+      renderItem={({ item }: { item: Todo }): React.ReactElement => (
+        <TodoItem item={item} onDelete={handleDelete} />
+      )}
+      keyExtractor={(item: Todo): string => item.id}
+    />
+  );
 }`}
           language="tsx"
-          title="The problem — new function every render"
+          title="The problem — unstable callbacks in a FlatList"
         />
         <p className="text-text-muted leading-relaxed">
-          Most of the time this is fine. But if the child component is wrapped in <code className="text-accent">React.memo</code> (which skips re-rendering when props have not changed),
-          it will still re-render because the function prop is technically a <em>different</em> function each time.
-        </p>
-        <p className="text-text-muted leading-relaxed">
-          <code className="text-accent">useCallback</code> solves this by caching the function and returning the same reference as long as the dependencies have not changed.
+          <code className="text-accent">useCallback</code> solves this by caching the function and returning the <strong className="text-text">same reference</strong> as long as the dependencies haven't changed.
+          This lets <code className="text-accent">React.memo</code> do its job — items whose props haven't changed skip re-rendering entirely.
         </p>
       </section>
 
@@ -123,16 +154,39 @@ const memoizedFn = useCallback(
       <section className="space-y-4 mb-12">
         <h2 className="text-2xl font-heading font-bold text-text">Interactive Demo</h2>
 
-        <DemoBox title="Render Count Comparison">
+        <DemoBox title="FlatList Item Render Comparison">
           <div className="space-y-4">
             <p className="text-sm text-text-muted">
-              Both child components below are wrapped in <code className="text-accent">React.memo</code>.
-              Click "Force Parent Re-render" and watch the render counts.
+              Both lists below simulate a <code className="text-accent">FlatList</code> where every item is wrapped in <code className="text-accent">React.memo</code>.
+              Click <strong className="text-text">"Force Parent Re-render"</strong> and compare the item render counts.
             </p>
 
             <div className="grid sm:grid-cols-2 gap-4">
-              <ChildWithout onClick={handleClickWithout} />
-              <ChildWith onClick={handleClickWith} />
+              {/* Without useCallback */}
+              <div className="rounded-lg bg-warning/5 border border-warning/20 overflow-hidden">
+                <div className="px-3 py-2 bg-warning/10 border-b border-warning/20">
+                  <p className="text-xs font-mono text-warning font-semibold">Without useCallback</p>
+                  <p className="text-xs font-mono text-warning/70">
+                    Item renders: <strong>{unstableItemRenders}</strong>
+                  </p>
+                </div>
+                {ITEMS.map((item) => (
+                  <UnstableRow key={item.id} item={item} onPress={handlePressUnstable} />
+                ))}
+              </div>
+
+              {/* With useCallback */}
+              <div className="rounded-lg bg-primary/5 border border-primary/20 overflow-hidden">
+                <div className="px-3 py-2 bg-primary/10 border-b border-primary/20">
+                  <p className="text-xs font-mono text-primary font-semibold">With useCallback</p>
+                  <p className="text-xs font-mono text-primary/70">
+                    Item renders: <strong>{stableItemRenders}</strong>
+                  </p>
+                </div>
+                {ITEMS.map((item) => (
+                  <StableRow key={item.id} item={item} onPress={handlePressStable} />
+                ))}
+              </div>
             </div>
 
             <div className="flex items-center gap-4">
@@ -143,14 +197,14 @@ const memoizedFn = useCallback(
                 Force Parent Re-render
               </button>
               <span className="text-sm text-text-muted font-mono">
-                Count: <span className="text-accent font-bold">{count}</span>
+                Items pressed: <span className="text-accent font-bold">{count}</span>
               </span>
             </div>
 
             <InfoBox variant="info" title="What's happening?">
-              When the parent re-renders, <code className="text-accent">handleClickWithout</code> is a new function reference,
-              so the memo'd child re-renders. <code className="text-accent">handleClickWith</code> is the same reference (thanks to useCallback),
-              so the memo'd child skips the re-render.
+              When the parent re-renders, <code className="text-accent">handlePressUnstable</code> is a new function reference,
+              so all 5 memo'd items in the left list re-render. <code className="text-accent">handlePressStable</code> is the same reference
+              (thanks to useCallback), so the right list's items skip re-rendering entirely. In a real FlatList with hundreds of items, this difference is dramatic.
             </InfoBox>
           </div>
         </DemoBox>
@@ -159,98 +213,129 @@ const memoizedFn = useCallback(
         <CodeBlock
           code={`import { useState, useCallback, memo } from 'react';
 
-// memo() wraps a component so it only re-renders when its PROPS change.
-// But "change" for objects/functions means a new reference — not a new value.
-
-interface ChildProps {
-  onClick: () => void;
+interface DemoItem {
+  id: number;
+  title: string;
 }
 
-const ChildWithout = memo(function ChildWithout({ onClick }: ChildProps): React.ReactElement {
-  renderCount++;  // increments on every parent render
-  return <button onClick={onClick}>Click me</button>;
-});
-
-const ChildWith = memo(function ChildWith({ onClick }: ChildProps): React.ReactElement {
-  renderCount++;  // only increments when onClick reference changes
-  return <button onClick={onClick}>Click me</button>;
+// Each row is wrapped in React.memo — it only re-renders when props change.
+// But if onPress is a new function reference every render, memo can't help.
+const ListRow = memo(function ListRow({ item, onPress }: {
+  item: DemoItem;
+  onPress: (id: number) => void;
+}): React.ReactElement {
+  return (
+    <button onClick={(): void => onPress(item.id)}>
+      {item.title}
+    </button>
+  );
 });
 
 function Parent(): React.ReactElement {
   const [count, setCount] = useState<number>(0);
 
-  // ❌ Without useCallback: this creates a NEW function object every render.
-  // memo(ChildWithout) sees a different onClick reference each time → re-renders.
-  const handleWithout = (): void => setCount((c: number) => c + 1);
+  // ❌ Without useCallback: new function every render.
+  // All memo'd ListRow components see a different onPress → all re-render.
+  const handlePressUnstable = (id: number): void => setCount((c: number) => c + 1);
 
-  // ✅ With useCallback: this returns the SAME function reference between renders.
-  // memo(ChildWith) sees the same onClick reference → skips re-render.
-  // The [] means "never recreate this function" (no dependencies).
-  const handleWith = useCallback((): void => setCount((c: number) => c + 1), []);
+  // ✅ With useCallback: same function reference between renders.
+  // memo'd ListRow components see the same onPress → skip re-render.
+  const handlePressStable = useCallback((id: number): void => {
+    setCount((c: number) => c + 1);
+  }, []);
 
   return (
     <>
-      <ChildWithout onClick={handleWithout} />
-      <ChildWith onClick={handleWith} />
+      {items.map((item: DemoItem): React.ReactElement => (
+        <ListRow key={item.id} item={item} onPress={handlePressStable} />
+      ))}
     </>
   );
 }`}
           language="tsx"
-          title="Demo source code — useCallback with memo"
+          title="Demo source — useCallback stabilizes list item callbacks"
         />
-
-        <p className="text-text-muted leading-relaxed">
-          <strong className="text-text">Why this matters:</strong> In JavaScript, <code className="text-accent">() =&gt; {'{}'}</code> creates a new function object every time it runs.
-          Two functions with the same code are still different objects: <code className="text-accent">(() =&gt; {'{}'}) !== (() =&gt; {'{}'})</code>.
-          <code className="text-accent"> useCallback</code> solves this by returning the <em>same</em> function object between renders, so <code className="text-accent">memo()</code> can properly skip re-renders.
-        </p>
       </section>
 
-      {/* React Native equivalent */}
+      {/* The Full FlatList Pattern */}
       <section className="space-y-4 mb-12">
-        <h2 className="text-2xl font-heading font-bold text-text">In React Native</h2>
+        <h2 className="text-2xl font-heading font-bold text-text">The Full FlatList Pattern</h2>
         <p className="text-text-muted leading-relaxed">
-          <code className="text-accent">useCallback</code> works identically in React Native. It is especially important when passing
-          callbacks to <code className="text-accent">FlatList</code>'s <code className="text-accent">renderItem</code> — an unstable reference can cause the entire list to re-render:
+          Optimizing a <code className="text-accent">FlatList</code> follows a three-step pattern:
+          (1) wrap items in <code className="text-accent">React.memo</code>,
+          (2) wrap handlers in <code className="text-accent">useCallback</code>, and
+          (3) wrap <code className="text-accent">renderItem</code> in <code className="text-accent">useCallback</code>.
         </p>
         <CodeBlock
-          code={`import { useState, useCallback } from 'react';
+          code={`import { useState, useCallback, memo } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 
-type Item = { id: string; title: string };
+interface Todo {
+  id: string;
+  title: string;
+  done: boolean;
+}
+
+interface TodoItemProps {
+  item: Todo;
+  onToggle: (id: string) => void;
+  onDelete: (id: string) => void;
+}
+
+// Step 1: Wrap each list item in React.memo.
+// This tells React: "only re-render if props actually changed."
+const TodoItem = memo(function TodoItem({ item, onToggle, onDelete }: TodoItemProps): React.ReactElement {
+  return (
+    <View style={styles.row}>
+      <TouchableOpacity onPress={(): void => onToggle(item.id)} style={styles.toggle}>
+        <Text style={item.done ? styles.done : styles.title}>{item.title}</Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={(): void => onDelete(item.id)}>
+        <Text style={styles.deleteText}>Delete</Text>
+      </TouchableOpacity>
+    </View>
+  );
+});
 
 export default function TodoList(): React.ReactElement {
-  const [items, setItems] = useState<Item[]>([
-    { id: '1', title: 'Learn useCallback' },
-    { id: '2', title: 'Build an app' },
-  ]);
+  const [todos, setTodos] = useState<Todo[]>(initialTodos);
 
-  // Memoize so FlatList doesn't re-render all items unnecessarily
-  const handlePress = useCallback((id: string): void => {
-    setItems((prev: Item[]): Item[] => prev.filter((item: Item): boolean => item.id !== id));
+  // Step 2: Wrap handlers in useCallback.
+  // Without this, every parent render creates new functions →
+  // memo(TodoItem) sees "new" props → every item re-renders.
+  const handleToggle = useCallback((id: string): void => {
+    setTodos((prev: Todo[]): Todo[] =>
+      prev.map((t: Todo): Todo => (t.id === id ? { ...t, done: !t.done } : t))
+    );
   }, []);
 
-  const renderItem = useCallback(({ item }: { item: Item }): React.ReactElement => (
-    <TouchableOpacity style={styles.item} onPress={(): void => handlePress(item.id)}>
-      <Text style={styles.text}>{item.title}</Text>
-    </TouchableOpacity>
-  ), [handlePress]);
+  const handleDelete = useCallback((id: string): void => {
+    setTodos((prev: Todo[]): Todo[] => prev.filter((t: Todo): boolean => t.id !== id));
+  }, []);
+
+  // Step 3: Wrap renderItem in useCallback — it's a function prop on FlatList.
+  const renderItem = useCallback(({ item }: { item: Todo }): React.ReactElement => (
+    <TodoItem item={item} onToggle={handleToggle} onDelete={handleDelete} />
+  ), [handleToggle, handleDelete]);
 
   return (
     <FlatList
-      data={items}
+      data={todos}
       renderItem={renderItem}
-      keyExtractor={(item: Item): string => item.id}
+      keyExtractor={(item: Todo): string => item.id}
     />
   );
 }
 
 const styles = StyleSheet.create({
-  item: { padding: 16, borderBottomWidth: 1, borderColor: '#eee' },
-  text: { fontSize: 16 },
+  row: { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderColor: '#eee' },
+  toggle: { flex: 1 },
+  title: { fontSize: 16 },
+  done: { fontSize: 16, textDecorationLine: 'line-through', color: '#999' },
+  deleteText: { color: 'red', fontSize: 14 },
 });`}
           language="tsx"
-          title="React Native — useCallback with FlatList"
+          title="React Native — the 3-step FlatList optimization"
         />
       </section>
 
