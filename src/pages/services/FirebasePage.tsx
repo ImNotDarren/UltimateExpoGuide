@@ -522,6 +522,74 @@ const styles = StyleSheet.create({
           title="app/login.tsx — a login screen using useAuth"
         />
 
+        {/* Persisting Login State */}
+        <h3 className="text-xl font-heading font-bold text-text pt-4">Persisting Login State</h3>
+        <p className="text-text-muted leading-relaxed">
+          Two pieces work together to keep users logged in across app restarts:
+        </p>
+
+        <div className="space-y-2 text-text-muted leading-relaxed">
+          <p>
+            <strong className="text-text">1. AsyncStorage persistence</strong> — In <code className="text-accent">config/firebase.ts</code>,
+            passing <code className="text-accent">getReactNativePersistence(AsyncStorage)</code> to <code className="text-accent">initializeAuth</code> tells
+            Firebase to save the auth token to the device's local storage. Without this, the token only lives in memory
+            and is lost when the app closes.
+          </p>
+          <p>
+            <strong className="text-text">2. onAuthStateChanged listener</strong> — In <code className="text-accent">AuthContext</code>,
+            the <code className="text-accent">onAuthStateChanged</code> listener fires on app start. Firebase reads the saved token
+            from AsyncStorage, validates it, and the listener receives the restored <code className="text-accent">User</code> object
+            automatically — no manual token handling needed.
+          </p>
+        </div>
+
+        <p className="text-text-muted leading-relaxed pt-2">
+          Use the <code className="text-accent">loading</code> state from <code className="text-accent">useAuth</code> to
+          show a splash screen while Firebase restores the session, then redirect based on whether a user was found:
+        </p>
+
+        <CodeBlock
+          code={`// app/index.tsx
+import { useEffect } from 'react';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'expo-router';
+
+export default function Index() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (loading) return;
+    // Once Firebase finishes restoring the session, redirect
+    if (user) {
+      router.replace('/home');
+    } else {
+      router.replace('/login');
+    }
+  }, [user, loading]);
+
+  return (
+    <View style={styles.container}>
+      <ActivityIndicator size="large" />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+});`}
+          language="tsx"
+          title="app/index.tsx — redirect after session restore"
+        />
+
+        <InfoBox variant="tip" title="How the flow works">
+          App opens → <code className="text-accent">loading</code> is <code className="text-accent">true</code> → spinner
+          shows → Firebase reads the token from AsyncStorage → <code className="text-accent">onAuthStateChanged</code> fires
+          with the restored user (or <code className="text-accent">null</code>) → <code className="text-accent">loading</code> becomes <code className="text-accent">false</code> →
+          redirect to home or login. Returning users never see the login screen.
+        </InfoBox>
+
       </section>
 
       {/* Firestore */}
