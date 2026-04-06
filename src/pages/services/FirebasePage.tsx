@@ -154,7 +154,8 @@ export function FirebasePage() {
           <CodeBlock
             code={`// config/firebase.ts
 import { initializeApp, getApps } from 'firebase/app';
-import { initializeAuth, getAuth, getReactNativePersistence } from 'firebase/auth';
+// @ts-expect-error - getReactNativePersistence exists in the RN bundle but is missing from web types
+import { initializeAuth, getAuth, getReactNativePersistence, Auth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getDatabase } from 'firebase/database';
 import { getStorage } from 'firebase/storage';
@@ -179,7 +180,7 @@ const app = getApps().length === 0
 
 // Auth with AsyncStorage persistence (keeps user logged in across app restarts)
 // The try/catch guards against hot reload calling initializeAuth twice
-let auth;
+let auth: Auth;
 try {
   auth = initializeAuth(app, {
     persistence: getReactNativePersistence(AsyncStorage),
@@ -339,8 +340,7 @@ import {
   signOut as firebaseSignOut,
   User,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { auth, db } from '@/config/firebase';
+import { auth } from '@/config/firebase';
 
 type AuthContextType = {
   user: User | null;
@@ -365,39 +365,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Sync basic profile info to Firestore on login
-  const syncUserProfile = async (firebaseUser: User) => {
-    if (firebaseUser.isAnonymous) return;
-
-    const userRef = doc(db, 'users', firebaseUser.uid);
-    const snap = await getDoc(userRef);
-
-    const updates: Record<string, string> = {};
-    const data = snap.exists() ? snap.data() : {};
-
-    // Set default user type if missing
-    if (!data.type) updates.type = 'user';
-
-    // Sync timezone
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (tz && data.timezone !== tz) updates.timezone = tz;
-
-    if (Object.keys(updates).length > 0 || !snap.exists()) {
-      await setDoc(userRef, updates, { merge: true });
-    }
-  };
-
   // Listen for auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
-      if (firebaseUser) {
-        try {
-          await syncUserProfile(firebaseUser);
-        } catch (error) {
-          console.error('Failed to sync user profile:', error);
-        }
-      }
       setLoading(false);
     });
     return unsubscribe;
@@ -551,59 +522,6 @@ const styles = StyleSheet.create({
           title="app/login.tsx — a login screen using useAuth"
         />
 
-        {/* Google Sign-In */}
-        <h3 className="text-xl font-heading font-bold text-text pt-4">Google Sign-In</h3>
-        <p className="text-text-muted leading-relaxed">
-          For Google Sign-In with the JS SDK in Expo Go, use <code className="text-accent">expo-auth-session</code> to
-          get an ID token, then pass it to Firebase:
-        </p>
-
-        <CodeBlock
-          code={`npx expo install expo-auth-session expo-crypto expo-web-browser`}
-          language="bash"
-          title="Terminal — install dependencies"
-        />
-
-        <CodeBlock
-          code={`// utils/googleAuth.ts
-import * as Google from 'expo-auth-session/providers/google';
-import * as WebBrowser from 'expo-web-browser';
-import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
-import { auth } from '@/config/firebase';
-
-WebBrowser.maybeCompleteAuthSession();
-
-export function useGoogleAuth() {
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    // Get these from Google Cloud Console → OAuth 2.0 Client IDs
-    iosClientId: 'YOUR_IOS_CLIENT_ID',
-    androidClientId: 'YOUR_ANDROID_CLIENT_ID',
-    webClientId: 'YOUR_WEB_CLIENT_ID',
-  });
-
-  const signInWithGoogle = async () => {
-    const result = await promptAsync();
-
-    if (result.type === 'success') {
-      const { id_token } = result.params;
-      const credential = GoogleAuthProvider.credential(id_token);
-      const userCredential = await signInWithCredential(auth, credential);
-      return userCredential.user;
-    }
-    return null;
-  };
-
-  return { signInWithGoogle, request };
-}`}
-          language="tsx"
-          title="utils/googleAuth.ts — Google Sign-In via expo-auth-session"
-        />
-
-        <InfoBox variant="info" title="Apple Sign-In">
-          For Apple Sign-In, use <code className="text-accent">expo-apple-authentication</code> to get an identity token,
-          then create an <code className="text-accent">OAuthProvider('apple.com').credential(&#123; idToken &#125;)</code> and
-          pass it to <code className="text-accent">signInWithCredential</code>. The pattern is the same as Google.
-        </InfoBox>
       </section>
 
       {/* Firestore */}
