@@ -20,6 +20,7 @@ import { NavigationGuide } from './pages/NavigationGuide'
 import { ModulesPage } from './pages/basics/ModulesPage'
 import { ReduxPage } from './pages/state/ReduxPage'
 import { LocalStoragePage } from './pages/storage/LocalStoragePage'
+import { FirebasePage } from './pages/services/FirebasePage'
 
 function App() {
   return (
@@ -50,6 +51,8 @@ function App() {
         <Route path="/storage/async-storage" element={<LocalStoragePage />} />
         {/* State Management */}
         <Route path="/state/redux" element={<ReduxPage />} />
+        {/* Services */}
+        <Route path="/services/firebase" element={<FirebasePage />} />
         {/* Navigation Guide */}
         <Route path="/navigation" element={<NavigationGuide />} />
         {/* Fallback */}
