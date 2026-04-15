@@ -597,393 +597,811 @@ const styles = StyleSheet.create({
         <h2 className="text-2xl font-heading font-bold text-text">Firestore — The Database</h2>
         <p className="text-text-muted leading-relaxed">
           Firestore is a NoSQL document database. Data lives in <strong className="text-text">documents</strong> (like JSON objects)
-          organized into <strong className="text-text">collections</strong> (like folders). You can query, filter, and listen
-          for real-time updates.
+          organized into <strong className="text-text">collections</strong> (like folders). Instead of sprinkling
+          Firestore calls across your screens, the cleanest pattern is to wrap every query in a
+          <strong className="text-text"> custom React hook</strong>. Your screens just call the hook and
+          get typed, real-time data — no listener management, no boilerplate.
         </p>
-
-        {/* Reading a document */}
-        <h3 className="text-xl font-heading font-bold text-text">Reading a Document</h3>
-        <CodeBlock
-          code={`import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/config/firebase';
-
-// Read a single document by path
-const userRef = doc(db, 'users', userId);
-const snapshot = await getDoc(userRef);
-
-if (snapshot.exists()) {
-  const data = snapshot.data();
-  console.log('User:', data);
-} else {
-  console.log('No such document');
-}`}
-          language="tsx"
-          title="Read a single document"
-        />
-
-        {/* Writing a document */}
-        <h3 className="text-xl font-heading font-bold text-text">Writing & Updating Documents</h3>
-        <CodeBlock
-          code={`import { doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { db } from '@/config/firebase';
-
-// Create or overwrite a document
-await setDoc(doc(db, 'users', userId), {
-  type: 'user',
-  timezone: 'America/New_York',
-});
-
-// Merge into an existing document (don't overwrite other fields)
-await setDoc(doc(db, 'users', userId), {
-  bodyProfile: { height: 70, weight: 160 },
-}, { merge: true });
-
-// Update specific fields (document must exist)
-await updateDoc(doc(db, 'users', userId), {
-  'bodyProfile.weight': 155,
-});
-
-// Delete a document
-await deleteDoc(doc(db, 'users', userId));`}
-          language="tsx"
-          title="Write, merge, update, and delete"
-        />
-
-        <InfoBox variant="tip" title="setDoc vs updateDoc">
-          <code className="text-accent">setDoc</code> creates or overwrites the document.
-          With <code className="text-accent">&#123; merge: true &#125;</code>, it only updates the fields you specify.
-          <code className="text-accent"> updateDoc</code> only works on existing documents and throws if the doc does not exist.
-          Use <code className="text-accent">setDoc</code> with merge when you are not sure if the document exists.
-        </InfoBox>
-
-        {/* Querying a collection */}
-        <h3 className="text-xl font-heading font-bold text-text">Querying Collections</h3>
-        <CodeBlock
-          code={`import {
-  collection,
-  query,
-  where,
-  orderBy,
-  limit,
-  getDocs,
-} from 'firebase/firestore';
-import { db } from '@/config/firebase';
-
-// Get all diet records for a user, newest first, limit 20
-const recordsRef = collection(db, 'uploads', 'dietai24', userId);
-const q = query(
-  recordsRef,
-  orderBy('createdAt', 'desc'),
-  limit(20),
-);
-
-const snapshot = await getDocs(q);
-const records = snapshot.docs.map((doc) => ({
-  id: doc.id,
-  ...doc.data(),
-}));
-
-// Filter with where()
-const pendingRef = collection(db, 'friendRequests');
-const pendingQuery = query(
-  pendingRef,
-  where('to', '==', userId),
-  where('status', '==', 'pending'),
-  orderBy('createdAt', 'desc'),
-);
-const pendingSnap = await getDocs(pendingQuery);`}
-          language="tsx"
-          title="Query collections with filters and ordering"
-        />
-
-        {/* Real-time listeners */}
-        <h3 className="text-xl font-heading font-bold text-text">Real-Time Listeners</h3>
         <p className="text-text-muted leading-relaxed">
-          Instead of fetching data once, you can <strong className="text-text">subscribe</strong> to a document or query.
-          Firestore pushes updates to your app instantly when the data changes on the server.
+          We will build a tiny <strong className="text-text">Todo List app</strong> end to end to show
+          the pattern in action.
         </p>
 
+        {/* Data model */}
+        <h3 className="text-xl font-heading font-bold text-text">The Todo Data Model</h3>
+        <p className="text-text-muted leading-relaxed">
+          Each user owns a <code className="text-accent">todos</code> subcollection keyed by their
+          UID. A todo is a single document with three fields. We use Firestore's native
+          <code className="text-accent"> Timestamp</code> type for <code className="text-accent">createdAt</code> so
+          ordering and server-side rules work correctly.
+        </p>
         <CodeBlock
-          code={`// hooks/useUser.ts
-import { useEffect, useState } from 'react';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '@/config/firebase';
+          code={`// Firestore path: /todos/{uid}/{todoId}
+import { Timestamp } from 'firebase/firestore';
 
-type UserProfile = {
-  userId: string;
-  type: string;
-  username?: string;
-  photoURL?: string;
-  timezone?: string;
-};
-
-export function useUser(userId: string | null) {
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!userId) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
-
-    // onSnapshot returns an unsubscribe function
-    const unsubscribe = onSnapshot(
-      doc(db, 'users', userId),
-      (snapshot) => {
-        if (snapshot.exists()) {
-          setUser({ userId, ...snapshot.data() } as UserProfile);
-        } else {
-          setUser({ userId, type: 'user' });
-        }
-        setLoading(false);
-      },
-      (error) => {
-        console.error('User listener error:', error);
-        setLoading(false);
-      },
-    );
-
-    // Cleanup: unsubscribe when userId changes or component unmounts
-    return () => unsubscribe();
-  }, [userId]);
-
-  return { user, loading };
-}`}
+export type Todo = {
+  id: string;           // Firestore document ID
+  text: string;         // What needs doing
+  completed: boolean;   // Has the user finished it?
+  createdAt: Timestamp; // Firestore Timestamp when the todo was added
+};`}
           language="tsx"
-          title="hooks/useUser.ts — real-time user profile listener"
+          title="The Todo type (defined alongside the useTodos hook)"
         />
 
+        {/* CRUD helpers */}
+        <h3 className="text-xl font-heading font-bold text-text">Firestore Helper Functions</h3>
+        <p className="text-text-muted leading-relaxed">
+          Group every Firestore mutation into a single file so screens never import from
+          <code className="text-accent"> firebase/firestore</code> directly. This keeps your data layer
+          in one place and makes it trivial to swap to React Native Firebase later — you only edit
+          this one file.
+        </p>
         <CodeBlock
-          code={`// hooks/useFriends.ts
-import { useEffect, useState } from 'react';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '@/config/firebase';
-
-type Friend = {
-  uid: string;
-  username: string;
-  photoURL: string | null;
-  addedAt: number;
-};
-
-export function useFriends(userId: string | null) {
-  const [friends, setFriends] = useState<Friend[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!userId) {
-      setFriends([]);
-      setLoading(false);
-      return;
-    }
-
-    const friendsRef = collection(db, 'users', userId, 'friends');
-    const q = query(friendsRef, orderBy('addedAt', 'desc'));
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const list: Friend[] = snapshot.docs.map((doc) => ({
-          uid: doc.id,
-          username: doc.data().username || '',
-          photoURL: doc.data().photoURL || null,
-          addedAt: doc.data().addedAt || 0,
-        }));
-        setFriends(list);
-        setLoading(false);
-      },
-      (error) => {
-        console.error('Friends listener error:', error);
-        setLoading(false);
-      },
-    );
-
-    return () => unsubscribe();
-  }, [userId]);
-
-  return { friends, loading };
-}`}
-          language="tsx"
-          title="hooks/useFriends.ts — real-time collection listener"
-        />
-
-        {/* Paginated list */}
-        <h3 className="text-xl font-heading font-bold text-text">Paginated Lists</h3>
-        <CodeBlock
-          code={`// hooks/useUserDietRecords.ts
-import { useEffect, useState, useCallback } from 'react';
+          code={`// services/todos.ts
 import {
   collection,
-  query,
-  orderBy,
-  limit as limitTo,
-  onSnapshot,
+  doc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 
-type DietRecord = { id: string; createdAt: number; [key: string]: unknown };
+const todosRef = collection(db, 'todos');
+const todoDoc = (todoId: string) => doc(db, 'todos', todoId);
 
-const PAGE_SIZE = 20;
+// Create a new todo (Firestore generates the ID)
+export async function addTodo(text: string) {
+  await addDoc(todosRef, {
+    text,
+    completed: false,
+    createdAt: serverTimestamp(), // resolves to a Timestamp on the server
+  });
+}
 
-export function useUserDietRecords(userId: string | null) {
-  const [records, setRecords] = useState<DietRecord[]>([]);
+// Toggle completed state
+export async function toggleTodo(todoId: string, completed: boolean) {
+  await updateDoc(todoDoc(todoId), { completed });
+}
+
+// Edit the text of an existing todo
+export async function updateTodoText(todoId: string, text: string) {
+  await updateDoc(todoDoc(todoId), { text });
+}
+
+// Delete a todo
+export async function deleteTodo(todoId: string) {
+  await deleteDoc(todoDoc(todoId));
+}`}
+          language="tsx"
+          title="services/todos.ts — every write lives here"
+        />
+
+        <InfoBox variant="tip" title="addDoc vs setDoc">
+          <code className="text-accent">addDoc</code> generates a random document ID for you — perfect
+          for todos and any list-style data. Use <code className="text-accent">setDoc</code> only when
+          you need to control the ID (for example, when the document key <em>is</em> the user's UID).
+        </InfoBox>
+
+        {/* useTodos hook */}
+        <h3 className="text-xl font-heading font-bold text-text">useTodos — A Real-Time Custom Hook</h3>
+        <p className="text-text-muted leading-relaxed">
+          This is the heart of the pattern. The hook subscribes to the user's
+          <code className="text-accent"> todos</code> collection with
+          <code className="text-accent"> onSnapshot</code>, keeps the list in
+          <code className="text-accent"> useState</code>, and unsubscribes when the screen unmounts.
+          Your component just calls <code className="text-accent">useTodos(userId)</code> and gets back
+          a live array of todos that updates automatically when anything changes.
+        </p>
+        <CodeBlock
+          code={`// hooks/useTodos.ts
+import { db } from "@/config/firebase";
+import { collection, onSnapshot, orderBy, query, Timestamp } from "firebase/firestore";
+import { useEffect, useState } from "react";
+
+export type Todo = {
+  id: string;         // Firestore document ID
+  text: string;       // What needs doing
+  completed: boolean; // Has the user finished it?
+  createdAt: Timestamp;  // Date.now() when the todo was added
+};
+
+export function useTodos(uid: string | null) {
+  const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [pageLimit, setPageLimit] = useState(PAGE_SIZE);
-  const [hasMore, setHasMore] = useState(true);
-
-  const loadMore = useCallback(() => {
-    if (hasMore && !loading) {
-      setPageLimit((prev) => prev + PAGE_SIZE);
-    }
-  }, [hasMore, loading]);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (!userId) {
-      setRecords([]);
+    if (!uid) {
+      setTodos([]);
       setLoading(false);
+      setError(null);
       return;
     }
 
     setLoading(true);
 
     const q = query(
-      collection(db, 'uploads', 'dietai24', userId),
-      orderBy('createdAt', 'desc'),
-      limitTo(pageLimit),
+      collection(db, 'todos'),
+      orderBy('createdAt', 'desc')
     );
 
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const list: Todo[] = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        text: doc.data().text as string,
+        completed: doc.data().completed as boolean,
+        createdAt: doc.data().createdAt as Timestamp,
+      }));
+
+      setTodos(list);
+      setLoading(false);
+      setError(null);
+    }, (err) => {
+      setError(err);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [uid]);
+
+  return { todos, loading, error };
+}`}
+          language="tsx"
+          title="hooks/useTodos.ts — real-time todo list"
+        />
+
+        {/* useTodo hook */}
+        <h3 className="text-xl font-heading font-bold text-text">useTodo — A Single Document Hook</h3>
+        <p className="text-text-muted leading-relaxed">
+          For an edit screen you usually only need one todo. Same pattern, but with
+          <code className="text-accent"> doc()</code> instead of a query.
+        </p>
+        <CodeBlock
+          code={`// hooks/useTodo.ts
+import { db } from '@/config/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
+import type { Todo } from './useTodos';
+
+export function useTodo(uid: string | null, todoId: string | null) {
+  const [todo, setTodo] = useState<Todo | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!uid || !todoId) {
+      setTodo(null);
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onSnapshot(
-      q,
+      doc(db, 'todos', todoId),
       (snapshot) => {
-        const nextRecords = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as DietRecord[];
-        setRecords(nextRecords);
-        setHasMore(nextRecords.length >= pageLimit);
-        setLoading(false);
-      },
-      (error) => {
-        console.error('Diet records listener error:', error);
+        if (snapshot.exists()) {
+          setTodo({ id: snapshot.id, ...snapshot.data() } as Todo);
+        } else {
+          setTodo(null);
+        }
         setLoading(false);
       },
     );
 
     return () => unsubscribe();
-  }, [userId, pageLimit]);
+  }, [uid, todoId]);
 
-  return { records, loading, hasMore, loadMore };
+  return { todo, loading };
 }`}
           language="tsx"
-          title="hooks/useUserDietRecords.ts — paginated real-time list"
+          title="hooks/useTodo.ts — single document listener"
         />
 
-        <InfoBox variant="tip" title="The onSnapshot pattern">
-          The pattern is always the same: call <code className="text-accent">onSnapshot(ref, onSuccess, onError)</code> inside
-          a <code className="text-accent">useEffect</code>, return the unsubscribe function as the cleanup.
-          This ensures you never have dangling listeners.
+        {/* Filtered query */}
+        <h3 className="text-xl font-heading font-bold text-text">Filtered Queries — useFilteredTodos</h3>
+        <p className="text-text-muted leading-relaxed">
+          Want to show only the unfinished todos? Add a <code className="text-accent">where()</code> clause
+          and expose a filter argument. The hook re-subscribes whenever the filter changes thanks to the
+          <code className="text-accent"> useEffect</code> dependency array.
+        </p>
+        <CodeBlock
+          code={`// hooks/useFilteredTodos.ts
+import { db } from '@/config/firebase';
+import {
+  collection,
+  onSnapshot,
+  orderBy,
+  query,
+  where,
+} from 'firebase/firestore';
+import { useEffect, useState } from 'react';
+import type { Todo } from './useTodos';
+
+type Filter = 'all' | 'active' | 'completed';
+
+export function useFilteredTodos(uid: string | null, filter: Filter) {
+  const [todos, setTodos] = useState<Todo[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!uid) {
+      setTodos([]);
+      setLoading(false);
+      return;
+    }
+
+    const base = collection(db, 'todos');
+
+    // Build a different query depending on the filter
+    const q =
+      filter === 'all'
+        ? query(base, orderBy('createdAt', 'desc'))
+        : query(
+            base,
+            where('completed', '==', filter === 'completed'),
+            orderBy('createdAt', 'desc'),
+          );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setTodos(
+        snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Todo[],
+      );
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+    // Re-subscribe whenever the filter changes
+  }, [uid, filter]);
+
+  return { todos, loading };
+}`}
+          language="tsx"
+          title="hooks/useFilteredTodos.ts — filter with where()"
+        />
+
+        <InfoBox variant="warning" title="Composite indexes">
+          The first time you run a query that combines <code className="text-accent">where()</code> and
+          <code className="text-accent"> orderBy()</code> on different fields, Firestore will throw an
+          error with a direct link to create the required composite index. Click it, wait a minute,
+          and your query will work.
+        </InfoBox>
+
+        {/* Using in a screen */}
+        <h3 className="text-xl font-heading font-bold text-text">Using the Hook in a Screen</h3>
+        <p className="text-text-muted leading-relaxed">
+          Once the hooks exist, your screen has zero Firestore code. Just call the hook, render the
+          data, and call the helpers from <code className="text-accent">services/todos.ts</code> to
+          mutate.
+        </p>
+        <CodeBlock
+          code={`// app/(tabs)/todos.tsx
+import { useState } from 'react';
+import { View, Text, TextInput, FlatList, Pressable } from 'react-native';
+import { useAuth } from '@/hooks/useAuth';
+import { useTodos } from '@/hooks/useTodos';
+import { addTodo, toggleTodo, deleteTodo } from '@/services/todos';
+
+export default function TodosScreen() {
+  const { user } = useAuth();
+  const { todos, loading } = useTodos(user?.uid ?? null);
+  const [text, setText] = useState('');
+
+  if (loading) return <Text>Loading…</Text>;
+
+  return (
+    <View style={{ flex: 1, padding: 16 }}>
+      <TextInput
+        value={text}
+        onChangeText={setText}
+        placeholder="What needs doing?"
+        onSubmitEditing={async () => {
+          if (!user || !text.trim()) return;
+          await addTodo(text.trim());
+          setText('');
+        }}
+      />
+
+      <FlatList
+        data={todos}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <View style={{ flexDirection: 'row', padding: 12 }}>
+            <Pressable
+              onPress={() => toggleTodo(item.id, !item.completed)}
+              style={{ flex: 1 }}
+            >
+              <Text
+                style={{
+                  textDecorationLine: item.completed ? 'line-through' : 'none',
+                }}
+              >
+                {item.text}
+              </Text>
+            </Pressable>
+            <Pressable onPress={() => deleteTodo(item.id)}>
+              <Text>Delete</Text>
+            </Pressable>
+          </View>
+        )}
+      />
+    </View>
+  );
+}`}
+          language="tsx"
+          title="app/(tabs)/todos.tsx — the screen has zero firebase imports"
+        />
+
+        <InfoBox variant="tip" title="The custom hook pattern">
+          Every Firestore query in your app should live inside a hook in
+          <code className="text-accent"> hooks/</code>, and every write should live inside a function
+          in <code className="text-accent"> services/</code>. Screens never import from
+          <code className="text-accent"> firebase/firestore</code> directly. This makes listeners
+          impossible to leak, queries trivially testable, and a future migration to React Native
+          Firebase a one-file change.
+        </InfoBox>
+
+        {/* Security rules for todos */}
+        <h3 className="text-xl font-heading font-bold text-text">Security Rules — The Server-Side Layer</h3>
+        <p className="text-text-muted leading-relaxed">
+          Your custom hooks live on the client, so anyone with the app can technically run any
+          Firestore query they want. The <strong className="text-text">only</strong> thing that keeps
+          one user from reading another user's todos is your <code className="text-accent">firestore.rules</code>
+          file. Rules run server-side and cannot be bypassed by decompiling the app.
+        </p>
+        <p className="text-text-muted leading-relaxed">
+          For our todo app the rule is simple: a user can only read and write documents under their
+          own <code className="text-accent">/todos/&#123;uid&#125;</code> path, and every todo must have
+          the three required fields with the correct types.
+        </p>
+        <CodeBlock
+          code={`// firestore.rules
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: is the request signed in as this uid?
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // Helper: validate the shape of an incoming todo document
+    function isValidTodo(data) {
+      return data.keys().hasAll(['text', 'completed', 'createdAt'])
+          && data.text is string
+          && data.text.size() > 0
+          && data.text.size() <= 500
+          && data.completed is bool
+          && data.createdAt is timestamp;
+    }
+
+    // /todos/{uid}/{todoId}
+    match /todos/{uid}/{todoId} {
+
+      // Read: only the owner can list or get their todos
+      allow read: if isOwner(uid);
+
+      // Create: owner only, and the new doc must be a valid todo
+      allow create: if isOwner(uid)
+                    && isValidTodo(request.resource.data);
+
+      // Update: owner only, must remain a valid todo,
+      // and createdAt must not change
+      allow update: if isOwner(uid)
+                    && isValidTodo(request.resource.data)
+                    && request.resource.data.createdAt == resource.data.createdAt;
+
+      // Delete: owner only
+      allow delete: if isOwner(uid);
+    }
+
+    // Default deny: anything not matched above is forbidden
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}`}
+          language="javascript"
+          title="firestore.rules — lock down the todos collection"
+        />
+
+        <InfoBox variant="warning" title="Default deny is mandatory">
+          Always end your rules file with a <code className="text-accent">match /&#123;document=**&#125;</code> block
+          that denies everything. Without it, any path you forgot to write a rule for is wide open
+          if you ever switched away from a deny-by-default starter template.
+        </InfoBox>
+
+        <p className="text-text-muted leading-relaxed">
+          Deploy the rules with the Firebase CLI. They go live in seconds and apply globally —
+          you do <em>not</em> need to ship a new app build.
+        </p>
+        <CodeBlock
+          code={`# One-time: tell the CLI which rules file to use (already set if you ran firebase init)
+# firebase.json → "firestore": { "rules": "firestore.rules" }
+
+# Deploy only the Firestore rules (fast, no functions or hosting)
+firebase deploy --only firestore:rules
+
+# Test the rules locally against the emulator before deploying
+firebase emulators:start --only firestore`}
+          language="bash"
+          title="Deploy and test your rules"
+        />
+
+        <InfoBox variant="tip" title="Test rules in the emulator first">
+          The Firestore emulator runs your <code className="text-accent">firestore.rules</code> file
+          locally, so you can verify a denied write actually fails before pushing to production. The
+          emulator also gives you a UI at <code className="text-accent">localhost:4000</code> to inspect
+          documents and watch every read/write request in real time.
         </InfoBox>
       </section>
 
       {/* Realtime Database */}
       <section className="space-y-4 mb-12">
-        <h2 className="text-2xl font-heading font-bold text-text">Realtime Database</h2>
+        <h2 className="text-2xl font-heading font-bold text-text">Realtime Database — The Other Database</h2>
         <p className="text-text-muted leading-relaxed">
-          Firebase has <em>two</em> databases: Firestore (the default, document-based) and the
+          Firebase has <em>two</em> databases: Firestore (document-based) and the
           <strong className="text-text"> Realtime Database</strong> (the older, JSON-tree-based one).
-          The Realtime Database is great for things like <strong className="text-text">chat messages</strong> where you
-          need very low latency and simple key-value structure.
+          RTDB shines when you need very low latency on simple key-value data — chat messages,
+          presence indicators, typing status. The API is different but the
+          <strong className="text-text"> custom hook pattern is identical</strong>: wrap every read in a hook,
+          wrap every write in a service file, and let your screens stay clean.
+        </p>
+        <p className="text-text-muted leading-relaxed">
+          Let's rebuild the same Todo List app on top of RTDB so you can compare the two side by side.
         </p>
 
+        {/* Data model */}
+        <h3 className="text-xl font-heading font-bold text-text">The Todo Tree</h3>
+        <p className="text-text-muted leading-relaxed">
+          RTDB stores everything as one big JSON tree. The same logical structure as the Firestore
+          example, just expressed as nested keys:
+        </p>
         <CodeBlock
-          code={`// hooks/useChat.ts
-import { useEffect, useState, useCallback } from 'react';
-import {
-  ref,
-  onValue,
-  push,
-  update,
-  query,
-  orderByChild,
-  limitToLast,
-} from 'firebase/database';
+          code={`// Realtime Database tree
+{
+  "users": {
+    "abc123": {
+      "todos": {
+        "-NfXyZ...": {           // push() generates this key
+          "text": "Buy milk",
+          "completed": false,
+          "createdAt": 1712534400000
+        },
+        "-NfXyZ...": { ... }
+      }
+    }
+  }
+}`}
+          language="json"
+          title="RTDB layout for the todo app"
+        />
+
+        {/* Helper functions */}
+        <h3 className="text-xl font-heading font-bold text-text">RTDB Helper Functions</h3>
+        <p className="text-text-muted leading-relaxed">
+          Same idea as <code className="text-accent">services/todos.ts</code>: every write lives in
+          one file, screens never import from <code className="text-accent">firebase/database</code> directly.
+        </p>
+        <CodeBlock
+          code={`// services/todosRtdb.ts
+import { ref, push, set, update, remove } from 'firebase/database';
 import { rtdb } from '@/config/firebase';
 
-type Message = {
-  id: string;
-  text: string;
-  sender: string;
-  sendTime: number;
-};
+const todosRef = (userId: string) => ref(rtdb, \`users/\${userId}/todos\`);
+const todoRef = (userId: string, todoId: string) =>
+  ref(rtdb, \`users/\${userId}/todos/\${todoId}\`);
 
-type ChatMeta = {
-  participants: Record<string, true>;
-  lastMessage: { text: string; sender: string; sendTime: number };
-  name?: string;
-};
+// Create a new todo (push() generates a unique chronological key)
+export async function addTodo(userId: string, text: string) {
+  const newRef = push(todosRef(userId));
+  await set(newRef, {
+    text,
+    completed: false,
+    createdAt: Date.now(),
+  });
+}
 
-export function useChat(chatId: string, userId: string) {
-  const [chatMeta, setChatMeta] = useState<ChatMeta | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+// Toggle completed state
+export async function toggleTodo(
+  userId: string,
+  todoId: string,
+  completed: boolean,
+) {
+  await update(todoRef(userId, todoId), { completed });
+}
 
-  useEffect(() => {
-    if (!chatId) return;
+// Edit the text of an existing todo
+export async function updateTodoText(
+  userId: string,
+  todoId: string,
+  text: string,
+) {
+  await update(todoRef(userId, todoId), { text });
+}
 
-    // Listen to chat metadata
-    const chatRef = ref(rtdb, \`chats/\${chatId}\`);
-    const unsubMeta = onValue(chatRef, (snap) => {
-      setChatMeta(snap.exists() ? (snap.val() as ChatMeta) : null);
-    });
-
-    // Listen to messages (last 100, ordered by time)
-    const msgsRef = query(
-      ref(rtdb, \`messages/\${chatId}\`),
-      orderByChild('sendTime'),
-      limitToLast(100),
-    );
-    const unsubMsgs = onValue(msgsRef, (snap) => {
-      const raw = snap.val() as Record<string, Omit<Message, 'id'>> | null;
-      setMessages(
-        raw
-          ? Object.entries(raw).map(([id, m]) => ({ id, ...m }))
-          : [],
-      );
-    });
-
-    return () => {
-      unsubMeta();
-      unsubMsgs();
-    };
-  }, [chatId]);
-
-  // Send a message
-  const sendMessage = useCallback(
-    async (text: string) => {
-      const msgData = { text, sender: userId, sendTime: Date.now() };
-
-      // Push a new message
-      await push(ref(rtdb, \`messages/\${chatId}\`), msgData);
-
-      // Update chat metadata
-      await update(ref(rtdb, \`chats/\${chatId}\`), {
-        lastMessage: msgData,
-      });
-    },
-    [chatId, userId],
-  );
-
-  return { chatMeta, messages, sendMessage };
+// Delete a todo
+export async function deleteTodo(userId: string, todoId: string) {
+  await remove(todoRef(userId, todoId));
 }`}
           language="tsx"
-          title="hooks/useChat.ts — real-time chat with RTDB"
+          title="services/todosRtdb.ts — every write lives here"
+        />
+
+        <InfoBox variant="tip" title="push() vs set()">
+          <code className="text-accent">push()</code> generates a unique, chronologically-ordered key
+          (perfect for lists). <code className="text-accent">set()</code> writes to a known path.
+          <code className="text-accent"> update()</code> only touches the fields you pass — the rest of
+          the node is untouched.
+        </InfoBox>
+
+        {/* useTodos hook */}
+        <h3 className="text-xl font-heading font-bold text-text">useTodos — RTDB Custom Hook</h3>
+        <p className="text-text-muted leading-relaxed">
+          The pattern is the same as Firestore: subscribe inside <code className="text-accent">useEffect</code>,
+          return the unsubscribe in cleanup. The differences are
+          <code className="text-accent"> onValue</code> instead of <code className="text-accent">onSnapshot</code>,
+          and you get a JSON object that needs to be turned into an array.
+        </p>
+        <CodeBlock
+          code={`// hooks/useTodosRtdb.ts
+import { useEffect, useState } from 'react';
+import { ref, query, orderByChild, onValue } from 'firebase/database';
+import { rtdb } from '@/config/firebase';
+import type { Todo } from '@/types/todo';
+
+export function useTodos(userId: string | null) {
+  const [todos, setTodos] = useState<Todo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    if (!userId) {
+      setTodos([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+
+    // Order by createdAt on the server (requires .indexOn in rules)
+    const todosQuery = query(
+      ref(rtdb, \`users/\${userId}/todos\`),
+      orderByChild('createdAt'),
+    );
+
+    // onValue returns an unsubscribe function
+    const unsubscribe = onValue(
+      todosQuery,
+      (snapshot) => {
+        const raw = snapshot.val() as Record<string, Omit<Todo, 'id'>> | null;
+        if (!raw) {
+          setTodos([]);
+          setLoading(false);
+          return;
+        }
+
+        // RTDB returns an object — convert it to a sorted array (newest first)
+        const list: Todo[] = Object.entries(raw)
+          .map(([id, data]) => ({ id, ...data }))
+          .sort((a, b) => b.createdAt - a.createdAt);
+
+        setTodos(list);
+        setLoading(false);
+      },
+      (err) => {
+        console.error('useTodos (RTDB) error:', err);
+        setError(err);
+        setLoading(false);
+      },
+    );
+
+    return () => unsubscribe();
+  }, [userId]);
+
+  return { todos, loading, error };
+}`}
+          language="tsx"
+          title="hooks/useTodosRtdb.ts — real-time todo list"
+        />
+
+        {/* useTodo hook */}
+        <h3 className="text-xl font-heading font-bold text-text">useTodo — Single Node Hook</h3>
+        <CodeBlock
+          code={`// hooks/useTodoRtdb.ts
+import { useEffect, useState } from 'react';
+import { ref, onValue } from 'firebase/database';
+import { rtdb } from '@/config/firebase';
+import type { Todo } from '@/types/todo';
+
+export function useTodo(userId: string | null, todoId: string | null) {
+  const [todo, setTodo] = useState<Todo | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId || !todoId) {
+      setTodo(null);
+      setLoading(false);
+      return;
+    }
+
+    const unsubscribe = onValue(
+      ref(rtdb, \`users/\${userId}/todos/\${todoId}\`),
+      (snapshot) => {
+        if (snapshot.exists()) {
+          setTodo({ id: todoId, ...snapshot.val() } as Todo);
+        } else {
+          setTodo(null);
+        }
+        setLoading(false);
+      },
+    );
+
+    return () => unsubscribe();
+  }, [userId, todoId]);
+
+  return { todo, loading };
+}`}
+          language="tsx"
+          title="hooks/useTodoRtdb.ts — single node listener"
+        />
+
+        {/* Filtered query */}
+        <h3 className="text-xl font-heading font-bold text-text">Filtered Queries — useFilteredTodos</h3>
+        <p className="text-text-muted leading-relaxed">
+          RTDB only lets you order by <em>one</em> field at a time and combine it with
+          <code className="text-accent"> equalTo</code>, <code className="text-accent">startAt</code>,
+          or <code className="text-accent">endAt</code>. For our active/completed filter that's plenty.
+        </p>
+        <CodeBlock
+          code={`// hooks/useFilteredTodosRtdb.ts
+import { useEffect, useState } from 'react';
+import {
+  ref,
+  query,
+  orderByChild,
+  equalTo,
+  onValue,
+} from 'firebase/database';
+import { rtdb } from '@/config/firebase';
+import type { Todo } from '@/types/todo';
+
+type Filter = 'all' | 'active' | 'completed';
+
+export function useFilteredTodos(userId: string | null, filter: Filter) {
+  const [todos, setTodos] = useState<Todo[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) {
+      setTodos([]);
+      setLoading(false);
+      return;
+    }
+
+    const base = ref(rtdb, \`users/\${userId}/todos\`);
+
+    // RTDB only allows orderBy on a single field at a time
+    const q =
+      filter === 'all'
+        ? query(base, orderByChild('createdAt'))
+        : query(
+            base,
+            orderByChild('completed'),
+            equalTo(filter === 'completed'),
+          );
+
+    const unsubscribe = onValue(q, (snapshot) => {
+      const raw = snapshot.val() as Record<string, Omit<Todo, 'id'>> | null;
+      const list: Todo[] = raw
+        ? Object.entries(raw)
+            .map(([id, data]) => ({ id, ...data }))
+            .sort((a, b) => b.createdAt - a.createdAt)
+        : [];
+      setTodos(list);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [userId, filter]);
+
+  return { todos, loading };
+}`}
+          language="tsx"
+          title="hooks/useFilteredTodosRtdb.ts — filter with orderByChild + equalTo"
+        />
+
+        <InfoBox variant="warning" title="RTDB indexes are explicit">
+          Unlike Firestore, RTDB will <em>silently</em> read every child if you query an unindexed
+          field — fine in development, slow and expensive in production. Always declare
+          <code className="text-accent"> .indexOn</code> for any field you sort or filter by in your
+          rules file (see below).
+        </InfoBox>
+
+        {/* Security rules */}
+        <h3 className="text-xl font-heading font-bold text-text">Security Rules — The Server-Side Layer</h3>
+        <p className="text-text-muted leading-relaxed">
+          RTDB rules live in <code className="text-accent">database.rules.json</code> and are JSON,
+          not the <code className="text-accent">cloud.firestore</code> DSL. Rules cascade: a
+          <code className="text-accent"> .read</code> or <code className="text-accent">.write</code> at a
+          parent path grants access to <em>everything</em> beneath it, so write your rules as deep
+          as the data lives.
+        </p>
+        <CodeBlock
+          code={`{
+  "rules": {
+    "users": {
+      "$userId": {
+        "todos": {
+          // Only the owner can read or write their todo list
+          ".read": "auth != null && auth.uid == $userId",
+          ".write": "auth != null && auth.uid == $userId",
+
+          // Index the fields we sort or filter by
+          ".indexOn": ["createdAt", "completed"],
+
+          "$todoId": {
+            // Every todo must have these three fields
+            ".validate": "newData.hasChildren(['text', 'completed', 'createdAt'])",
+
+            "text": {
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 500"
+            },
+            "completed": {
+              ".validate": "newData.isBoolean()"
+            },
+            "createdAt": {
+              // Number, and never editable after creation
+              ".validate": "newData.isNumber() && (!data.exists() || newData.val() == data.val())"
+            },
+
+            // Reject any extra fields
+            "$other": {
+              ".validate": false
+            }
+          }
+        }
+      }
+    }
+  }
+}`}
+          language="json"
+          title="database.rules.json — lock down the todos tree"
+        />
+
+        <InfoBox variant="warning" title="Rules cascade — read them once, top to bottom">
+          If you put <code className="text-accent">".read": "true"</code> at the top of the tree, every
+          path beneath it is public, even ones with stricter rules. There is no way to "revoke" a
+          parent's grant from a child. Always start from a deny-by-default base.
+        </InfoBox>
+
+        <p className="text-text-muted leading-relaxed">
+          Deploy with the Firebase CLI. RTDB rules are in their own file, so deploy them on their
+          own target:
+        </p>
+        <CodeBlock
+          code={`# firebase.json points at the rules file:
+# "database": { "rules": "database.rules.json" }
+
+# Deploy only the RTDB rules
+firebase deploy --only database
+
+# Run the RTDB emulator locally to test rules and queries
+firebase emulators:start --only database`}
+          language="bash"
+          title="Deploy and test RTDB rules"
         />
 
         <InfoBox variant="info" title="Firestore vs Realtime Database">
-          Use <strong>Firestore</strong> for structured data with complex queries (users, records, friends).
-          Use <strong>Realtime Database</strong> for high-frequency, simple data (chat messages, presence indicators, typing status).
-          Many apps use both — they serve different purposes.
+          Use <strong>Firestore</strong> for structured data with complex queries, multiple where
+          clauses, and large per-document payloads. Use <strong>Realtime Database</strong> for
+          high-frequency, simple data: chat messages, presence indicators, typing status, live
+          cursors. Many apps use both — they serve different purposes. The custom hook pattern is
+          the same either way, so you can swap one for the other without touching your screens.
         </InfoBox>
       </section>
 
